@@ -68,6 +68,16 @@
     </ProjectReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Shared source, not part of Core's DLL. The reach curve is the sentence this mod and
+         Skaft both say to a player, and two copies of it drift apart in the way that makes
+         "8 metres at 60" true in one mod and not the other. Compiled in rather than called
+         through Core because Core is a soft dependency everywhere, and a mod whose central
+         number lived in an assembly that might be absent would need a second code path that
+         only runs on machines nobody tests on. -->
+    <Compile Include="..\core\shared\CraftingReach.cs" Link="shared\CraftingReach.cs" />
+  </ItemGroup>
+
   <!--
     Assets, if the mod has any. Uncomment and drop .obj / .col / .png into assets\; load them
     relative to Path.GetDirectoryName(typeof(X).Assembly.Location). Rejected design variants

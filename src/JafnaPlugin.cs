@@ -8,15 +8,38 @@ using HarmonyLib;
 namespace Jafna
 {
     /// <summary>
-    /// Jafna. One sentence saying what the mod does, then a paragraph saying why it is
-    /// worth having - the design argument, not the feature list. That paragraph is the thing
-    /// future-you reads first.
+    /// Jafna. Levelling with the hoe continues the flat ground it touches instead of chasing
+    /// your crosshair, and Crafting decides how far one swing reaches.
     ///
-    /// Say here whether the mod is client-side, and say it in terms of where the work
-    /// happens rather than by habit. "Client-side" means every effect is computed by the
-    /// owning client off state it already has. The moment a decision reads another player's
-    /// progress, writes a shared ZDO, or registers a prefab, it is not client-side any more
-    /// and Requirement.Everyone below is load-bearing.
+    /// Vanilla's level op sets every point under the tool to the height of the placement
+    /// ghost, and the ghost sits wherever the crosshair last met the ground. The reference
+    /// height therefore follows the camera: two swings taken a step apart level their shared
+    /// overlap to two different heights, permanently, and no amount of care fixes it because
+    /// the thing moving is the target rather than the aim. That is the whole reason a large
+    /// yard comes out rippled. Jafna gives the swing somewhere fixed to level to, and the
+    /// game was already storing it - TerrainComp flags every grid point a terrain op has
+    /// touched, saved in the zone and synced like everything else. A swing that covers ground
+    /// you levelled before takes that height; a swing that covers none behaves exactly like
+    /// vanilla, which is how a new platform at a new height still starts.
+    ///
+    /// Reach is Skaft's rule on a second tool: Crafting buys reach and never buys a discount.
+    /// The curve is shared source in core\shared\CraftingReach.cs so the two mods cannot come
+    /// to mean different things by the same sentence.
+    ///
+    /// The ward rule is not a feature, it is the price of the reach. Vanilla tests a single
+    /// point under the crosshair however wide the tool is, so even the stock hoe can already
+    /// cut ground from under a neighbour's wall from outside their fence. Widening the tool
+    /// widens that hole, so Jafna tests the whole footprint before it will let the swing land.
+    ///
+    /// Where the work happens: the height and the radius are both applied by whichever client
+    /// owns that zone's TerrainComp, which is frequently not the player who swung. The height
+    /// needs nothing to travel, because the flags it reads are already on the owner's machine.
+    /// The radius does, and vanilla carries no room for it, so it is appended behind a magic
+    /// number in a place nothing reads - see Reach.cs. An owner without Jafna never looks, and
+    /// applies an ordinary vanilla op.
+    ///
+    /// No prefabs, no items, no recipes, no saved values of its own. A world played with Jafna
+    /// is an ordinary world; the ground you shaped is ground vanilla's own op shaped.
     ///
     /// There is deliberately no BepInProcess attribute. A dedicated server runs
     /// valheim_server.exe, and Core's gate only refuses on the server side of RPC_PeerInfo -
@@ -67,6 +90,12 @@ namespace Jafna
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(JafnaPatches));
 
+            // Named separately rather than by a bare PatchAll(). Readout carries its own
+            // patch because the restore has to happen on a method that keeps running after
+            // the tool is put away, and the rule that nothing goes live by merely being
+            // written is worth more than the one saved line.
+            _harmony.PatchAll(typeof(Readout));
+
             // The startup line every mod in the suite writes. It is how a log answers "which
             // build of what is actually loaded" without anyone guessing.
             Log.LogInfo(PluginName + " " + PluginVersion + " by " + PluginAuthor + " - ready.");
@@ -106,19 +135,28 @@ namespace Jafna
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void RegisterWithCore()
         {
-            // Requirement.Everyone or Requirement.HostOnly, and the choice is not a matter of
-            // taste. Everyone for anything that registers a prefab or changes item data,
-            // whether it looks networked or not: a client that cannot resolve a prefab hash
-            // does not fail loudly, ZNetScene discards the ZDO as junk and the thing a player
-            // built is simply gone. HostOnly only when a client without the mod is genuinely
-            // unaffected.
-            Suite.Register(PluginGuid, PluginName, PluginVersion, Config, Requirement.Everyone);
+            // HostOnly, and it is load-bearing rather than lazy. Jafna registers no prefab and
+            // writes no value of its own, so a player without it cannot fail to resolve
+            // anything - every swing they take is a vanilla swing and every swing they see is
+            // already applied by whoever owns that zone. Everyone would refuse those players
+            // the server for no gain. Core treats HostOnly symmetrically, so a Jafna client can
+            // also still join a server that does not run it and simply gets vanilla reach.
+            //
+            // What standing without Core costs here is the ward rule. Nothing then refuses a
+            // client that lacks the plugin, so "the footprint has to clear the ward" becomes an
+            // agreement between players rather than a property of the server. That is a real
+            // loss and it is the server owner's to take, which is why this logs rather than
+            // refusing to run.
+            Suite.Register(PluginGuid, PluginName, PluginVersion, Config, Requirement.HostOnly);
 
-            // Registering already absorbs the whole config file, so this is a formality now.
-            // It is still worth writing: naming an entry here is saying out loud that the
-            // host decides it. Keybinds are excluded by Core itself - a host taking away
-            // someone's keys for the evening is the kind of sync that gets a mod uninstalled.
+            // Registering already absorbs the whole config file, so these are a formality. They
+            // are still worth writing: naming an entry here is saying out loud that the host
+            // decides it, and for these three that is the point. Reach and the ward footprint
+            // decide what a player may do to shared ground, and a table where everyone brought
+            // their own MaxRadius is not a table anybody agreed to sit at.
             Suite.Sync(JafnaConfig.Enabled);
+            Suite.Sync(JafnaConfig.MaxRadius);
+            Suite.Sync(JafnaConfig.RespectWardFootprint);
 
             // If the mod reads a data file that decides what it does, hash it too. The gate
             // catches two ends on different builds; it cannot catch two ends running the
