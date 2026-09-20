@@ -127,6 +127,17 @@ namespace Jafna
                 line += "no TerrainOp. ";
             }
 
+            // Whether vanilla's alt-placement key means anything for this piece. Player's
+            // ghost update only consults AltPlace when the prefab carries a terrain op AND the
+            // piece sets m_allowAltGroundPlacement, so these two decide whether the default
+            // HoldKey of Left Alt is double-booked or free.
+            if (prefab.TryGetComponent(out Piece piece))
+            {
+                line += "Piece groundPiece=" + piece.m_groundPiece
+                        + " allowAltGroundPlacement=" + piece.m_allowAltGroundPlacement
+                        + " clipGround=" + piece.m_clipGround + ". ";
+            }
+
             if (prefab.TryGetComponent(out TerrainModifier mod))
             {
                 line += "TerrainModifier level=" + mod.m_level
@@ -181,7 +192,13 @@ namespace Jafna
             if (modifier == null || !Reach.IsFlatten(modifier.m_settings)) return true;
 
             float radius = Reach.Earned(modifier.m_settings, Player.m_localPlayer);
-            if (radius <= Reach.VanillaRadius(modifier.m_settings)) return true;
+
+            // Sent when either half of the mod has something to say. A held height has to
+            // travel even at vanilla width, and it is the held case that also settles a swing
+            // crossing a zone line: every zone gets the same number rather than each deciding
+            // for itself from its own half of the footprint.
+            bool held = Held.Active;
+            if (radius <= Reach.VanillaRadius(modifier.m_settings) && !held) return true;
 
             ZNetView nview = Reach.View(__instance);
             if (nview == null) return true;
@@ -192,7 +209,7 @@ namespace Jafna
             if (modifier.m_settings.m_rotation) pkg.Write(modifier.transform.forward);
             modifier.m_settings.Serialize(pkg, modifier.gameObject);
 
-            Reach.Append(pkg, radius);
+            Reach.Append(pkg, radius, held, Held.Height);
 
             nview.InvokeRPC("RPC_ApplyOperation", pkg);
             return false;
@@ -215,11 +232,18 @@ namespace Jafna
         {
             if (!JafnaConfig.Enabled.Value)
             {
-                Reach.SetIncoming(-1f);
+                Reach.SetIncoming(-1f, false, 0f);
                 return;
             }
 
-            Reach.SetIncoming(Reach.Peek(pkg, out float radius) ? radius : -1f);
+            if (Reach.Peek(pkg, out float radius, out bool held, out float height))
+            {
+                Reach.SetIncoming(radius, held, height);
+            }
+            else
+            {
+                Reach.SetIncoming(-1f, false, 0f);
+            }
         }
 
         // -- 4. Applying it, and choosing the height --------------------------------------
@@ -239,7 +263,7 @@ namespace Jafna
         {
             if (!JafnaConfig.Enabled.Value) return;
 
-            float incoming = Reach.TakeIncoming();
+            float incoming = Reach.TakeIncoming(out bool held, out float heldHeight);
 
             if (!Reach.IsFlatten(modifier)) return;
 
@@ -255,12 +279,27 @@ namespace Jafna
             float offset = modifier.m_levelOffset;
             Vector3 probe = pos + Vector3.up * offset;
 
-            float target = Flat.Target(
-                __instance, probe, Reach.VanillaRadius(modifier), Reach.IsSquare(modifier), out Flat.Source source);
+            float target;
+            Flat.Source source;
 
-            if (source == Flat.Source.ContinuedFlat)
+            if (held)
             {
+                // A held height beats everything, including a flat the swing is touching. It is
+                // the one answer in this mod the player stated outright rather than the mod
+                // inferring it, and an inference that overrules a statement is not a feature.
+                target = heldHeight;
+                source = Flat.Source.Held;
                 pos.y = target - offset;
+            }
+            else
+            {
+                target = Flat.Target(
+                    __instance, probe, Reach.VanillaRadius(modifier), Reach.IsSquare(modifier), out source);
+
+                if (source == Flat.Source.ContinuedFlat)
+                {
+                    pos.y = target - offset;
+                }
             }
 
             if (JafnaConfig.Verbose.Value)
@@ -307,6 +346,8 @@ namespace Jafna
                 return;
             }
 
+            if (!JafnaConfig.ContinueFlat.Value && Held.Active) Held.Release();
+
             GameObject ghost = _placementGhost(__instance);
             if (ghost == null)
             {
@@ -314,8 +355,15 @@ namespace Jafna
                 return;
             }
 
-            float radius = Reach.Earned(settings, __instance);
             Vector3 point = ghost.transform.position;
+
+            // Read here rather than in an Update, because this is the one place that already
+            // knows a levelling tool is out and where the ghost is resting. A key that worked
+            // with the hoe put away would be a key that fires while you are doing something
+            // else entirely.
+            if (Keys.Pressed(JafnaConfig.HoldKey.Value)) Held.Toggle(point.y);
+
+            float radius = Reach.Earned(settings, __instance);
 
             bool wardClear = Reach.FootprintClear(point, radius, Reach.IsSquare(settings));
 

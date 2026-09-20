@@ -53,6 +53,8 @@ namespace Jafna
         /// calls DoOperation directly. Anything less immediate would need the ZDO to carry it.
         /// </summary>
         private static float _incoming = -1f;
+        private static bool _incomingHeld;
+        private static float _incomingHeight;
 
         private static bool Bind()
         {
@@ -207,10 +209,12 @@ namespace Jafna
 
         // -- The wire ------------------------------------------------------------------
 
-        internal static void Append(ZPackage pkg, float radius)
+        internal static void Append(ZPackage pkg, float radius, bool held, float height)
         {
             pkg.Write(Magic);
             pkg.Write(radius);
+            pkg.Write(held);
+            pkg.Write(height);
         }
 
         /// <summary>
@@ -220,9 +224,12 @@ namespace Jafna
         /// package's final int is a prefab hash, and the four bytes in front of it are a float
         /// that could in principle equal the magic.
         /// </summary>
-        internal static bool Peek(ZPackage pkg, out float radius)
+        internal static bool Peek(ZPackage pkg, out float radius, out bool held, out float height)
         {
             radius = -1f;
+            held = false;
+            height = 0f;
+
             if (pkg == null) return false;
 
             int start = pkg.GetPos();
@@ -233,10 +240,14 @@ namespace Jafna
                 if (pkg.ReadBool()) pkg.ReadVector3();
                 pkg.ReadInt();
 
-                if (pkg.GetPos() + 8 > pkg.Size()) return false;
+                // Magic, radius, the held flag and the held height: 4 + 4 + 1 + 4.
+                if (pkg.GetPos() + 13 > pkg.Size()) return false;
                 if (pkg.ReadInt() != Magic) return false;
 
                 radius = pkg.ReadSingle();
+                held = pkg.ReadBool();
+                height = pkg.ReadSingle();
+
                 return radius > 0f;
             }
             catch
@@ -251,15 +262,23 @@ namespace Jafna
             }
         }
 
-        internal static void SetIncoming(float radius)
+        internal static void SetIncoming(float radius, bool held, float height)
         {
             _incoming = radius;
+            _incomingHeld = held;
+            _incomingHeight = height;
         }
 
-        internal static float TakeIncoming()
+        internal static float TakeIncoming(out bool held, out float height)
         {
             float r = _incoming;
+            held = _incomingHeld;
+            height = _incomingHeight;
+
             _incoming = -1f;
+            _incomingHeld = false;
+            _incomingHeight = 0f;
+
             return r;
         }
 

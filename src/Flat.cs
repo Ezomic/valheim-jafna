@@ -47,7 +47,8 @@ namespace Jafna
             Crosshair,
             ContinuedFlat,
             Disagreed,
-            TooLittle
+            TooLittle,
+            Held
         }
 
         // TerrainComp keeps all three of these private. They are bound lazily and inside a

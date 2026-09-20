@@ -1,4 +1,5 @@
 using BepInEx.Configuration;
+using UnityEngine;
 
 namespace Jafna
 {
@@ -20,6 +21,7 @@ namespace Jafna
         internal static ConfigEntry<bool> ContinueFlat;
         internal static ConfigEntry<float> ContinueTolerance;
         internal static ConfigEntry<int> ContinueMinVertices;
+        internal static ConfigEntry<KeyCode> HoldKey;
 
         internal static ConfigEntry<float> MinRadius;
         internal static ConfigEntry<float> MaxRadius;
@@ -67,6 +69,22 @@ namespace Jafna
                 + "stray point left over from an old op, or from the corner of something "
                 + "levelled last winter, would silently capture the swing and drag a new "
                 + "platform to a height you cannot see.");
+
+            HoldKey = cfg.Bind("Levelling", "HoldKey", KeyCode.LeftAlt,
+                "Press this while a levelling tool is out to hold the height under your "
+                + "crosshair, and press it again to let go. While a height is held every swing "
+                + "flattens toward that one number, wherever you stand and wherever you aim - "
+                + "so you can walk a whole yard flat from one reading instead of taking what is "
+                + "under your feet at each step. It also settles the two cases the mod cannot "
+                + "decide on its own: a higher platform beside you capturing swings you meant "
+                + "lower, and a swing crossing a zone boundary where each zone would otherwise "
+                + "choose for itself. Nothing is held across a logout, on purpose - coming back "
+                + "to a swing that moves ground toward a number you set yesterday, with nothing "
+                + "on screen having changed, is a worse trap than setting it again. "
+                + "NOTE: Left Alt is also vanilla's alt-placement key, which does have a "
+                + "meaning for terrain tools, so if the ghost starts behaving oddly while you "
+                + "use this, move it to a key of its own. Keybinds are never taken over by a "
+                + "server, so this one stays yours whatever the host runs.");
 
             // -- Reach -------------------------------------------------------------------
 

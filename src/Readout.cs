@@ -53,7 +53,18 @@ namespace Jafna
             float offset = settings.m_levelOffset;
             Vector3 probe = point + Vector3.up * offset;
 
-            float target = Flat.Target(comp, probe, radius, Reach.IsSquare(settings), out Flat.Source source);
+            float target;
+            Flat.Source source;
+
+            if (Held.Active)
+            {
+                target = Held.Height;
+                source = Flat.Source.Held;
+            }
+            else
+            {
+                target = Flat.Target(comp, probe, radius, Reach.IsSquare(settings), out source);
+            }
 
             // Vanilla's own radius, so the line can say what the skill actually bought rather
             // than only what the swing covers.
@@ -64,6 +75,13 @@ namespace Jafna
             string reason;
             switch (source)
             {
+                case Flat.Source.Held:
+                    // Worded as an instruction rather than a state, because the one failure
+                    // this feature can produce is forgetting it is on: you walk somewhere else,
+                    // swing, and the ground moves toward a number you set five minutes ago.
+                    // A line that says how to stop is a line that cannot be misread as scenery.
+                    reason = "HOLDING height, press " + JafnaConfig.HoldKey.Value + " to release. Levelling to ";
+                    break;
                 case Flat.Source.ContinuedFlat:
                     reason = "Continuing ground you already flattened, to ";
                     break;
