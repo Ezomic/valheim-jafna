@@ -53,7 +53,11 @@ namespace Jafna
             float offset = settings.m_levelOffset;
             Vector3 probe = point + Vector3.up * offset;
 
-            float target = Flat.Target(comp, probe, radius, settings.m_square, out Flat.Source source);
+            float target = Flat.Target(comp, probe, radius, Reach.IsSquare(settings), out Flat.Source source);
+
+            // Vanilla's own radius, so the line can say what the skill actually bought rather
+            // than only what the swing covers.
+            float vanilla = Reach.VanillaRadius(settings);
 
             string reason;
             switch (source)
@@ -75,6 +79,7 @@ namespace Jafna
             string text =
                 "Reach <color=orange>" + radius.ToString("0.0") + "m</color>"
                 + " at Crafting " + JafnaPatches.CraftingLevel(player).ToString("0")
+                + (radius > vanilla + 0.01f ? " (tool: " + vanilla.ToString("0.0") + "m)" : "")
                 + "\nLevel to <color=orange>" + target.ToString("0.00") + "m</color>"
                 + " (" + reason + ")";
 

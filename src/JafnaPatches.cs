@@ -72,9 +72,76 @@ namespace Jafna
             GameObject prefab = table.GetSelectedPrefab();
             if (prefab == null) return null;
 
+            ReportSelection(prefab);
+
             if (!prefab.TryGetComponent(out TerrainOp op)) return null;
 
-            return op.m_settings != null && op.m_settings.m_level ? op.m_settings : null;
+            return Reach.IsFlatten(op.m_settings) ? op.m_settings : null;
+        }
+
+        /// <summary>Build-menu prefabs already described in the log, so each is reported once.</summary>
+        private static readonly System.Collections.Generic.HashSet<string> _describedPrefabs =
+            new System.Collections.Generic.HashSet<string>();
+
+        /// <summary>
+        /// Says what the selected build-menu prefab actually is, once per prefab, behind Verbose.
+        ///
+        /// This exists because the game carries TWO terrain systems and nothing on disk says
+        /// which one a given piece uses. TerrainOp is the one that goes through
+        /// TerrainComp.ApplyOperation and an RPC; TerrainModifier is an older arrangement that
+        /// persists as its own ZDO and is read back when a Heightmap regenerates, optionally
+        /// routing into the same compiler via m_useTerrainCompiler. Player.UpdatePlacementGhost
+        /// checks for both, so both are live in 1.0, and a piece table's contents are asset data
+        /// that no decompiler reaches and that a Devkit rip resolves only through ZNetScene and
+        /// ObjectDB - where a hoe piece may well not be registered at all.
+        ///
+        /// The route that works is the one Skaft ended up on for the hammer: make the mod log
+        /// what it is actually holding. A mod that patches the wrong one of two systems does not
+        /// fail, it does nothing, and the log stays clean while you check the config.
+        /// </summary>
+        private static void ReportSelection(GameObject prefab)
+        {
+            if (!JafnaConfig.Verbose.Value) return;
+            if (!_describedPrefabs.Add(prefab.name)) return;
+
+            string line = "Build menu selection '" + prefab.name + "': ";
+
+            if (prefab.TryGetComponent(out TerrainOp op))
+            {
+                TerrainOp.Settings s = op.m_settings;
+                line += s == null
+                    ? "TerrainOp with no settings. "
+                    : "TerrainOp level=" + s.m_level
+                      + " radius=" + s.m_levelRadius.ToString("0.00")
+                      + " square=" + s.m_square
+                      + " offset=" + s.m_levelOffset.ToString("0.00")
+                      + " raise=" + s.m_raise
+                      + " smooth=" + s.m_smooth
+                      + " smoothRadius=" + s.m_smoothRadius.ToString("0.00")
+                      + " smoothPower=" + s.m_smoothPower.ToString("0.00")
+                      + " paint=" + s.m_paintCleared
+                      + " paintRadius=" + s.m_paintRadius.ToString("0.00") + ". ";
+            }
+            else
+            {
+                line += "no TerrainOp. ";
+            }
+
+            if (prefab.TryGetComponent(out TerrainModifier mod))
+            {
+                line += "TerrainModifier level=" + mod.m_level
+                        + " radius=" + mod.m_levelRadius.ToString("0.00")
+                        + " square=" + mod.m_square
+                        + " offset=" + mod.m_levelOffset.ToString("0.00")
+                        + " useCompiler=" + mod.m_useTerrainCompiler
+                        + " smooth=" + mod.m_smooth + ".";
+            }
+            else
+            {
+                line += "no TerrainModifier.";
+            }
+
+            JafnaPlugin.Log.LogInfo(line);
         }
 
         // -- 1. How far the op reaches ---------------------------------------------------
@@ -91,7 +158,7 @@ namespace Jafna
         private static void WidenSearch(TerrainOp __instance, ref float __result)
         {
             if (!JafnaConfig.Enabled.Value) return;
-            if (__instance.m_settings == null || !__instance.m_settings.m_level) return;
+            if (!Reach.IsFlatten(__instance.m_settings)) return;
 
             __result = Mathf.Max(__result, Reach.Earned(__instance.m_settings, Player.m_localPlayer));
         }
@@ -111,10 +178,10 @@ namespace Jafna
         private static bool SendReach(TerrainComp __instance, TerrainOp modifier)
         {
             if (!JafnaConfig.Enabled.Value) return true;
-            if (modifier == null || modifier.m_settings == null || !modifier.m_settings.m_level) return true;
+            if (modifier == null || !Reach.IsFlatten(modifier.m_settings)) return true;
 
             float radius = Reach.Earned(modifier.m_settings, Player.m_localPlayer);
-            if (radius <= modifier.m_settings.m_levelRadius) return true;
+            if (radius <= Reach.VanillaRadius(modifier.m_settings)) return true;
 
             ZNetView nview = Reach.View(__instance);
             if (nview == null) return true;
@@ -174,9 +241,9 @@ namespace Jafna
 
             float incoming = Reach.TakeIncoming();
 
-            if (modifier == null || !modifier.m_level) return;
+            if (!Reach.IsFlatten(modifier)) return;
 
-            if (incoming > modifier.m_levelRadius)
+            if (incoming > Reach.VanillaRadius(modifier))
             {
                 modifier = Reach.With(modifier, incoming);
             }
@@ -189,7 +256,7 @@ namespace Jafna
             Vector3 probe = pos + Vector3.up * offset;
 
             float target = Flat.Target(
-                __instance, probe, modifier.m_levelRadius, modifier.m_square, out Flat.Source source);
+                __instance, probe, Reach.VanillaRadius(modifier), Reach.IsSquare(modifier), out Flat.Source source);
 
             if (source == Flat.Source.ContinuedFlat)
             {
@@ -200,7 +267,7 @@ namespace Jafna
             {
                 JafnaPlugin.Log.LogInfo(
                     "Level at " + pos.x.ToString("0.0") + "/" + pos.z.ToString("0.0")
-                    + ", radius " + modifier.m_levelRadius.ToString("0.0") + "m"
+                    + ", radius " + Reach.VanillaRadius(modifier).ToString("0.0") + "m"
                     + ", crosshair " + probe.y.ToString("0.00") + "m"
                     + ", used " + (probe.y + (pos.y - (probe.y - offset))).ToString("0.00") + "m"
                     + " (" + source + ").");
@@ -247,7 +314,7 @@ namespace Jafna
             float radius = Reach.Earned(settings, __instance);
             Vector3 point = ghost.transform.position;
 
-            bool wardClear = Reach.FootprintClear(point, radius);
+            bool wardClear = Reach.FootprintClear(point, radius, Reach.IsSquare(settings));
 
             if (!wardClear && _placementStatus(__instance) == Player.PlacementStatus.Valid)
             {
@@ -280,7 +347,7 @@ namespace Jafna
                 "Levelling tool's piece table skill: " + skill
                 + ". Crafting " + CraftingLevel(player).ToString("0")
                 + " gives a reach of " + Reach.Earned(settings, player).ToString("0.0")
-                + "m against the tool's own " + settings.m_levelRadius.ToString("0.0") + "m.");
+                + "m against the tool's own " + Reach.VanillaRadius(settings).ToString("0.0") + "m.");
         }
 
         internal static float CraftingLevel(Player player)

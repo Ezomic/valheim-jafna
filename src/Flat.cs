@@ -8,12 +8,20 @@ namespace Jafna
     /// <summary>
     /// Deciding what height a level swing should actually use.
     ///
-    /// The whole mod is one observation about <c>TerrainComp.LevelTerrain</c>: it sets every
-    /// grid point under the tool to <c>worldPos.y</c>, and <c>worldPos</c> is the placement
-    /// ghost, which sits wherever your crosshair last touched the ground. So the reference
-    /// height follows the camera. Two swings taken a step apart level their shared overlap
-    /// to two different heights, and the difference is permanent. No amount of care fixes
-    /// that, because the thing moving is not the player's aim, it is the target.
+    /// The whole mod is one observation about where a flattening op gets its target height:
+    /// it is <c>worldPos.y</c>, and <c>worldPos</c> is the placement ghost, which sits wherever
+    /// your crosshair last touched the ground. So the reference height follows the camera. Two
+    /// swings taken a step apart pull their shared overlap toward two different heights, and
+    /// the difference persists. No amount of care fixes that, because the thing moving is not
+    /// the player's aim, it is the target.
+    ///
+    /// Both flattening ops do this and they differ only in how hard they pull.
+    /// <c>LevelTerrain</c> sets each point to the target outright. <c>SmoothTerrain</c> lerps
+    /// toward it by <c>1 - (distance/radius)^power</c>, so the centre lands on the target and
+    /// the rim barely moves, and it clamps its own accumulated delta to one metre per point.
+    /// The hoe's Level ground entry is the second of these in Valheim 1.0, which is why
+    /// flattening by hand feels asymptotic: every swing covers a fraction of the remaining
+    /// distance to a height that has already moved.
     ///
     /// The fix needs somewhere to keep "the height this area is supposed to be", and the game
     /// is already keeping it. <c>TerrainComp</c> carries a <c>m_modifiedHeight</c> flag per
@@ -135,13 +143,25 @@ namespace Jafna
                     if (n < 0 || n >= modified.Length) continue;
                     if (!modified[n]) continue;
 
-                    // m_modifiedHeight is set by levelling, by raising AND by smoothing, so the
-                    // flag alone is not "this ground was made flat". A smoothed point sits on a
-                    // deliberate slope, and adopting its height would quietly drag a platform
-                    // toward the curve somebody rounded off at its edge. Take only points that
-                    // a level or raise op moved and a smooth op did not.
-                    if (Mathf.Abs(smoothDelta[n]) > 0.0001f) continue;
-                    if (Mathf.Abs(levelDelta[n]) < 0.0001f) continue;
+                    // Any point a terrain op actually moved counts, whichever op moved it.
+                    //
+                    // An earlier version of this skipped points carrying a smooth delta, on the
+                    // reasoning that smoothed ground sits on a deliberate slope. That is exactly
+                    // backwards for the tool this mod is for: the hoe's Level ground entry IS a
+                    // smooth op in 1.0 - m_smooth true, m_level false, read off the running game
+                    // on 2026-09-20 - so the test excluded precisely the ground the hoe had
+                    // flattened and the mod could never find anything to continue.
+                    //
+                    // Telling flat ground from a slope is left to the agreement test below,
+                    // which is where it belongs. Which operation produced a height says nothing
+                    // about whether that height is flat; the neighbouring heights say it
+                    // directly.
+                    //
+                    // The flag alone is still not enough, because LevelTerrain marks a point
+                    // modified even when it moved it by zero. A point flagged but never actually
+                    // displaced is original terrain wearing a flag, and adopting its height
+                    // would let untouched ground capture a swing.
+                    if (Mathf.Abs(levelDelta[n]) + Mathf.Abs(smoothDelta[n]) < 0.0001f) continue;
 
                     Heights.Add(hmap.transform.position.y + hmap.GetHeight(ix, iy));
                 }

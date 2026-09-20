@@ -81,7 +81,58 @@ namespace Jafna
         }
 
         /// <summary>
-        /// The radius a level op should use for the player at this keyboard, in metres.
+        /// Whether this op is one that flattens ground, and so one this mod has any business
+        /// touching.
+        ///
+        /// In Valheim 1.0 the hoe's Level ground entry is <c>m_smooth</c>, not <c>m_level</c> -
+        /// read off the running game on 2026-09-20, because a piece table is asset data that no
+        /// decompiler or prefab rip can reach. <c>m_level</c> is used by neither of the hoe's
+        /// flattening entries. Both are accepted here anyway: <c>m_level</c> exists, other tools
+        /// and other mods use it, and the two differ only in how hard they pull.
+        ///
+        /// <c>m_raise</c> is deliberately not on this list. It builds ground up rather than
+        /// flattening it, which is a different job with a different answer to "what height
+        /// should this be", and widening it was not what was asked for.
+        /// </summary>
+        internal static bool IsFlatten(TerrainOp.Settings settings)
+        {
+            return settings != null && (settings.m_smooth || settings.m_level);
+        }
+
+        /// <summary>
+        /// The radius the tool itself uses for whichever flattening operation it performs.
+        /// Smooth first, because that is the one the hoe actually carries.
+        /// </summary>
+        internal static float VanillaRadius(TerrainOp.Settings settings)
+        {
+            if (settings == null) return 0f;
+
+            return settings.m_smooth ? settings.m_smoothRadius : settings.m_levelRadius;
+        }
+
+        /// <summary>
+        /// Whether the op's footprint is really a square, which is not the same question as
+        /// what <c>m_square</c> says.
+        ///
+        /// <c>LevelTerrain</c> honours the flag. <c>SmoothTerrain</c> does not: it runs
+        /// <c>Vector2.Distance</c> against the radius on every point and never looks at
+        /// <c>m_square</c> at all, so a smooth op is round however the prefab is authored.
+        /// mud_road_v2 has the flag false anyway, but relying on that would be relying on an
+        /// asset rather than on the code, and the code is the thing that cannot change under
+        /// us without a game update we would rebuild for.
+        ///
+        /// It matters twice. The footprint this mod walks to find flat ground has to be the
+        /// same set of points the op will write to, or it reads heights from ground the swing
+        /// never touches and is right most of the time. And the ward test pads a square by root
+        /// two, which on a circle refuses swings that could not reach the ward at all.
+        /// </summary>
+        internal static bool IsSquare(TerrainOp.Settings settings)
+        {
+            return settings != null && !settings.m_smooth && settings.m_square;
+        }
+
+        /// <summary>
+        /// The radius a flattening op should use for the player at this keyboard, in metres.
         ///
         /// Always at least the tool's own radius. The vanilla number is asset data and cannot
         /// be read off disk by any decompiler, so the mod deliberately never states it and
@@ -91,9 +142,9 @@ namespace Jafna
         /// </summary>
         internal static float Earned(TerrainOp.Settings settings, Player player)
         {
-            float vanilla = settings == null ? 0f : settings.m_levelRadius;
+            float vanilla = VanillaRadius(settings);
 
-            if (!JafnaConfig.Enabled.Value || player == null) return vanilla;
+            if (!JafnaConfig.Enabled.Value || player == null || !IsFlatten(settings)) return vanilla;
 
             float earned = CraftingReach.Radius(
                 CraftingReach.Level(player),
@@ -117,7 +168,7 @@ namespace Jafna
         /// update that adds a setting then carries it across on its own; a hand-written copy
         /// would drop it and the op would come out subtly wrong with nothing logged.
         /// </summary>
-        internal static TerrainOp.Settings With(TerrainOp.Settings source, float levelRadius)
+        internal static TerrainOp.Settings With(TerrainOp.Settings source, float radius)
         {
             if (source == null) return null;
 
@@ -134,7 +185,23 @@ namespace Jafna
                 _settingsFields[i].SetValue(copy, _settingsFields[i].GetValue(source));
             }
 
-            copy.m_levelRadius = levelRadius;
+            float before = VanillaRadius(source);
+
+            if (source.m_smooth) copy.m_smoothRadius = radius;
+            else copy.m_levelRadius = radius;
+
+            // The paint circle is dragged along by the same factor rather than left where it
+            // was. The hoe's Level ground paints dirt over what it flattens, and a mod that
+            // widened the flattening alone would leave a wide patch of smoothed ground with a
+            // small circle of dirt in the middle of it - which reads as the texture failing to
+            // keep up rather than as a deliberate reach, and would have been blamed on the
+            // paint mask. Scaled by ratio because the vanilla radii are asset data: their
+            // relationship is known here, their values are not.
+            if (source.m_paintCleared && before > 0.01f && source.m_paintRadius > 0f)
+            {
+                copy.m_paintRadius = source.m_paintRadius * (radius / before);
+            }
+
             return copy;
         }
 
@@ -208,20 +275,22 @@ namespace Jafna
         /// anything that is not itself a ward, which is why the stock hoe can already cut into
         /// a neighbour's ground from just outside their fence.
         ///
-        /// The op levels a square, so the corner is radius * root two from the middle and that
-        /// is the number to test with. Testing the inscribed radius would leave four triangles
-        /// of ground reachable and would be harder to explain than either extreme.
+        /// A square op reaches root two further at its corners than its radius suggests, so it
+        /// is tested with the circumscribed radius. The hoe's own op is round - m_square is
+        /// false on mud_road_v2, read off the running game - and padding a circle by root two
+        /// would refuse swings that cannot touch the ward at all, which is a worse failure than
+        /// the hole being closed slightly loosely.
         ///
         /// Flashing is off. The vanilla call flashes the ward to tell you why you are being
         /// refused, but this runs from a placement ghost update, which is every frame, and a
         /// ward strobing at sixty hertz reads as a bug rather than an explanation. The readout
         /// says it in words instead.
         /// </summary>
-        internal static bool FootprintClear(Vector3 point, float radius)
+        internal static bool FootprintClear(Vector3 point, float radius, bool square)
         {
             if (!JafnaConfig.RespectWardFootprint.Value) return true;
 
-            return PrivateArea.CheckAccess(point, radius * 1.4142136f, false, false);
+            return PrivateArea.CheckAccess(point, square ? radius * 1.4142136f : radius, false, false);
         }
     }
 }
