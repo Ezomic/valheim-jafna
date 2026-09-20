@@ -63,25 +63,48 @@ namespace Jafna
             switch (source)
             {
                 case Flat.Source.ContinuedFlat:
-                    reason = "continuing the flat it touches";
+                    reason = "continuing ground you already flattened";
                     break;
                 case Flat.Source.Disagreed:
-                    reason = "crosshair - two heights meet here";
+                    reason = "from your crosshair, ground here is at two heights";
                     break;
                 case Flat.Source.TooLittle:
-                    reason = "crosshair - too little flat to follow";
+                    reason = "from your crosshair, too little flat ground to follow";
                     break;
                 default:
-                    reason = "crosshair - new ground";
+                    reason = "from your crosshair, fresh ground";
                     break;
             }
 
-            string text =
-                "Reach <color=orange>" + radius.ToString("0.0") + "m</color>"
-                + " at Crafting " + JafnaPatches.CraftingLevel(player).ToString("0")
-                + (radius > vanilla + 0.01f ? " (tool: " + vanilla.ToString("0.0") + "m)" : "")
-                + "\nLevel to <color=orange>" + target.ToString("0.00") + "m</color>"
-                + " (" + reason + ")";
+            // Written as width rather than radius, and as sentences rather than labels.
+            //
+            // The first version of this line read "Reach 5,4m at Crafting 52 (tool: 3,0m)" and
+            // was not clear, which is a fair complaint about all three of its parts. "Reach" is
+            // a radius, but what a player watches is how wide the patch under them goes, so the
+            // number on screen disagreed with the number in their eyes by a factor of two.
+            // "tool:" named a thing without saying what about it. And two bare figures side by
+            // side leave you to work out which is the mod and which is the game.
+            string text;
+
+            if (radius > vanilla + 0.01f)
+            {
+                text = "Flattens <color=orange>" + Fixed(radius * 2f, "0.0", 4) + "m</color> across,"
+                       + " up from the hoe's own " + Fixed(vanilla * 2f, "0.0", 4) + "m"
+                       + " (Crafting " + Fixed(JafnaPatches.CraftingLevel(player), "0", 3) + ")";
+            }
+            else
+            {
+                // Below about Crafting 25 the curve has not caught the hoe up yet. Saying so is
+                // better than showing two identical numbers, which reads as the mod being broken
+                // rather than as the skill not being high enough.
+                text = "Flattens <color=orange>" + Fixed(radius * 2f, "0.0", 4) + "m</color> across,"
+                       + " the hoe's own reach (Crafting "
+                       + Fixed(JafnaPatches.CraftingLevel(player), "0", 3) + " adds nothing yet)";
+            }
+
+            // Width 6 carries a three digit height and two decimals, so the line holds still
+            // from the shore to the top of the mountains rather than only around a base.
+            text += "\nHeight <color=orange>" + Fixed(target, "0.00", 6) + "m</color>, " + reason;
 
             if (!wardClear)
             {
@@ -94,6 +117,24 @@ namespace Jafna
         internal static void Clear()
         {
             _lines = null;
+        }
+
+        /// <summary>
+        /// A number that always occupies the same width on screen, whatever it says.
+        ///
+        /// The build panel's text is rewritten every frame, and the height under the crosshair
+        /// changes with every frame, so an unpadded number moves everything after it sideways
+        /// as you look around - 32,09 becoming 9,50 is two characters narrower and the rest of
+        /// the line slides to meet it. The suite's rule is that nothing reflows, and this is the
+        /// cheapest way to keep it: pad to a fixed character count, then set a fixed advance per
+        /// character with TextMeshPro's mspace so the padding is worth an exact amount.
+        ///
+        /// Padding alone would not do it. The panel's font is proportional, so a 1 and a 0 are
+        /// different widths and a string of the same length still wobbles as the digits change.
+        /// </summary>
+        private static string Fixed(float value, string format, int width)
+        {
+            return "<mspace=0.62em>" + value.ToString(format).PadLeft(width) + "</mspace>";
         }
 
         /// <summary>
