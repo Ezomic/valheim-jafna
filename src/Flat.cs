@@ -195,11 +195,23 @@ namespace Jafna
                     // about whether that height is flat; the neighbouring heights say it
                     // directly.
                     //
-                    // The flag alone is still not enough, because LevelTerrain marks a point
-                    // modified even when it moved it by zero. A point flagged but never actually
-                    // displaced is original terrain wearing a flag, and adopting its height
-                    // would let untouched ground capture a swing.
-                    if (Mathf.Abs(levelDelta[n]) + Mathf.Abs(smoothDelta[n]) < 0.0001f) continue;
+                    // No displacement test. There was one, requiring a tenth of a millimetre of
+                    // movement on the reasoning that a point flagged but never displaced is
+                    // original terrain wearing a flag. On a first play test that left three
+                    // qualifying points inside a five metre footprint of ground that had been
+                    // worked for an hour, because flattening near-level meadow barely moves
+                    // anything: the delta of a point that was already at the right height is
+                    // zero, and it is zero precisely because the work succeeded.
+                    //
+                    // The flag is the right signal on its own. m_modifiedHeight is set only by
+                    // level, raise and smooth operations, every one of which is a player
+                    // deliberately shaping that point. "Touched by an operation" is exactly the
+                    // question being asked, and a point that needed no moving is still ground
+                    // somebody chose the height of.
+                    //
+                    // The delta arrays are still read above, as a null check: a TerrainComp that
+                    // has not finished initialising has the flags and not the deltas, and that
+                    // is worth declining rather than reading half a state.
 
                     Heights.Add(hmap.transform.position.y + hmap.GetHeight(ix, iy));
                     Distances.Add((ix - cx) * (ix - cx) + (iy - cy) * (iy - cy));
