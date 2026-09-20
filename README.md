@@ -63,6 +63,14 @@ The panel says `HOLDING height, press LeftAlt to release` for as long as it last
 is deliberate: the single mistake this feature can cause is forgetting it is on, and a line
 that tells you how to stop cannot be read as decoration.
 
+**A held height more than about a metre from the ground will not be reached, and that is
+vanilla rather than this mod.** The hoe's flattening eases each point and caps its total
+movement at roughly one metre; only raising ground banks that and frees the budget again. So
+hold 32m, stand on 34m, and the ground comes down to about 33m and then stops, short of the
+number the panel is still showing. Use Raise ground to get within a metre first. Making a held
+swing ignore the cap was considered and rejected: it would turn the hoe into a tool that sets
+ground to any height in one swing, which is a different mod.
+
 A held height is not kept across a logout. Coming back, swinging, and watching the ground move
 toward a number you set yesterday for a reason you no longer remember - with nothing on screen
 having changed to warn you - is a worse trap than setting it again.

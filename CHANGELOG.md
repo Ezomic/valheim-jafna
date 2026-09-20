@@ -82,18 +82,22 @@ Singleplayer, one world, Crafting 52, reach 5,4m against the hoe's own 3,0m.
 ### Known and open
 
 - The ward footprint has never refused anything in a test - there was no ward to refuse it.
-- **A held height above about a metre away cannot be reached.** SmoothTerrain clamps its
-  accumulated movement to one metre per point and only a level or raise operation banks that and
-  frees the budget, so holding 32,08 while standing on 33,76 brings the ground down to roughly
-  32,76 and stops, short of the number the panel is showing. That is vanilla's clamp rather than
-  anything here, but holding a height makes it easy to aim further than a metre, so it will be
-  met often. Converting a held swing into a true level operation would remove the ceiling in two
-  lines and would make the hoe markedly stronger; not done, pending a decision.
+- **A held height above about a metre away cannot be reached, and it stays that way.**
+  SmoothTerrain clamps its accumulated movement to one metre per point and only a level or raise
+  operation banks that and frees the budget, so holding 32,08 while standing on 33,76 brings the
+  ground down to roughly 32,76 and stops, short of the number the panel is showing. That is
+  vanilla's clamp rather than anything here. Converting a held swing into a true level operation
+  would remove the ceiling in two lines - **decided against**, because it would turn the hoe into
+  a tool that sets ground to any height in one swing, and every mod in this suite is meant to be
+  narrower than the thing it replaces. Raise ground first, then hold and flatten. Documented in
+  the README so it does not read as a fault.
 - Left Alt is confirmed double booked: mud_road_v2's piece sets both `m_groundPiece` and
   `m_allowAltGroundPlacement`, which is exactly the condition `Player.UpdatePlacementGhost`
   requires before it reads `AltPlace`. In practice a tap captured 32,07 on a flat sitting at
-  32,08-32,10, so the single frame of alt placement does not appear to shift the reading. The
-  key is configurable if it ever does.
+  32,08-32,10, so the single frame of alt placement does not appear to shift the reading.
+  **Left Alt stays as the default**, on that evidence and because it is the key that was asked
+  for; `HoldKey` is configurable if the ghost ever misbehaves, and a server never takes a
+  keybind over.
 - `SmoothTerrain` clamps its accumulated movement to one metre per point and only a level
   operation banks that and frees the budget, so flattening with the hoe is capped near a metre
   per point however the target is chosen. Whether that ceiling is the real obstacle in practice
