@@ -65,8 +65,45 @@ namespace Jafna
         private static bool _bound;
         private static bool _bindFailed;
 
-        /// <summary>Scratch list, reused. One swing per click, but it is still a loop over the footprint.</summary>
+        /// <summary>
+        /// Scratch lists, reused. One swing per click, but it is still a loop over the
+        /// footprint - about ninety points at a five metre radius.
+        /// </summary>
         private static readonly List<float> Heights = new List<float>();
+        private static readonly List<float> Distances = new List<float>();
+        private static readonly List<float> Chosen = new List<float>();
+
+        /// <summary>
+        /// Orders both scratch lists by squared distance from the crosshair, nearest first.
+        ///
+        /// Written out rather than handed to List.Sort with a comparer because the two lists are
+        /// parallel and have to move together, and because this runs once per swing over about
+        /// ninety entries, where an insertion sort is not worth replacing and allocates nothing.
+        /// </summary>
+        private static void Sort()
+        {
+            for (int i = 1; i < Distances.Count; i++)
+            {
+                float d = Distances[i];
+                float h = Heights[i];
+
+                int j = i - 1;
+                while (j >= 0 && Distances[j] > d)
+                {
+                    Distances[j + 1] = Distances[j];
+                    Heights[j + 1] = Heights[j];
+                    j--;
+                }
+
+                Distances[j + 1] = d;
+                Heights[j + 1] = h;
+            }
+        }
+
+        /// <summary>How many points were found and how far apart the ones used were, for the log.</summary>
+        internal static int LastFound;
+        internal static int LastUsed;
+        internal static float LastSpread;
 
         private static bool Bind()
         {
@@ -131,6 +168,7 @@ namespace Jafna
             Vector2 centre = new Vector2(cx, cy);
 
             Heights.Clear();
+            Distances.Clear();
 
             for (int iy = cy - span; iy <= cy + span; iy++)
             {
@@ -164,39 +202,74 @@ namespace Jafna
                     if (Mathf.Abs(levelDelta[n]) + Mathf.Abs(smoothDelta[n]) < 0.0001f) continue;
 
                     Heights.Add(hmap.transform.position.y + hmap.GetHeight(ix, iy));
+                    Distances.Add((ix - cx) * (ix - cx) + (iy - cy) * (iy - cy));
                 }
             }
 
-            if (Heights.Count < Mathf.Max(1, JafnaConfig.ContinueMinVertices.Value))
+            LastFound = Heights.Count;
+            LastUsed = 0;
+            LastSpread = 0f;
+
+            int need = Mathf.Max(1, JafnaConfig.ContinueMinVertices.Value);
+
+            if (Heights.Count < need)
             {
                 source = Heights.Count > 0 ? Source.TooLittle : Source.Crosshair;
                 return worldPos.y;
             }
 
+            // Only the points nearest the crosshair are consulted, and this is the part that had
+            // to be learned from a real slope rather than reasoned out.
+            //
+            // A first version asked the whole footprint to agree within a few centimetres and
+            // refused almost every swing on ground that was visibly being flattened. The reason
+            // is that SmoothTerrain eases from full effect at the centre to nothing at the rim,
+            // so a smoothed patch is a dish and not a plateau - by construction, not because
+            // anything went wrong. Asking a dish to be level within five centimetres is asking
+            // for something the tool cannot produce, and the answer was always "these heights
+            // disagree, use the crosshair", which is the behaviour the mod exists to replace.
+            //
+            // The points close to where you are aiming are the ones an earlier swing centred on
+            // and pulled all the way to its target, so they are the best evidence of the height
+            // this ground is meant to be. The rim is half-finished on purpose and says nothing.
+            Sort();
+
+            int used = Mathf.Min(Heights.Count, Mathf.Max(need, 8));
+
             float lowest = float.MaxValue;
             float highest = float.MinValue;
-            float total = 0f;
 
-            for (int i = 0; i < Heights.Count; i++)
+            for (int i = 0; i < used; i++)
             {
                 float h = Heights[i];
                 if (h < lowest) lowest = h;
                 if (h > highest) highest = h;
-                total += h;
             }
+
+            LastUsed = used;
+            LastSpread = highest - lowest;
 
             // Two platforms at different heights meeting under one swing. Averaging them would
             // put a ramp through the middle of both and there would be no way to tell it had
             // happened until the wall would not sit flush. Hand it back to the crosshair, which
             // is at least a height the player can see and move.
-            if (highest - lowest > Mathf.Max(0f, JafnaConfig.ContinueTolerance.Value))
+            if (LastSpread > Mathf.Max(0f, JafnaConfig.ContinueTolerance.Value))
             {
                 source = Source.Disagreed;
                 return worldPos.y;
             }
 
             source = Source.ContinuedFlat;
-            return total / Heights.Count;
+
+            // Median rather than mean. The points used are already the closest ones, but a
+            // single outlier among them - the corner of an older platform clipping the edge of
+            // this swing - drags a mean and does not move a median. Sorted by VALUE here; the
+            // sort above ordered them by distance, which is a different question.
+            Chosen.Clear();
+            for (int i = 0; i < used; i++) Chosen.Add(Heights[i]);
+            Chosen.Sort();
+
+            return Chosen[Chosen.Count / 2];
         }
     }
 }

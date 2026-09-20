@@ -270,7 +270,10 @@ namespace Jafna
                     + ", radius " + Reach.VanillaRadius(modifier).ToString("0.0") + "m"
                     + ", crosshair " + probe.y.ToString("0.00") + "m"
                     + ", used " + (probe.y + (pos.y - (probe.y - offset))).ToString("0.00") + "m"
-                    + " (" + source + ").");
+                    + " (" + source + ", found " + Flat.LastFound
+                    + ", used " + Flat.LastUsed
+                    + ", spread " + Flat.LastSpread.ToString("0.000") + "m"
+                    + " vs tolerance " + JafnaConfig.ContinueTolerance.Value.ToString("0.000") + "m).");
             }
         }
 

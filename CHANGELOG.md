@@ -39,12 +39,40 @@ or from flat the swing is continuing. That last part is not decoration. A tool t
 overrules your aim is indistinguishable from a tool that has started misbehaving, which is the
 complaint this mod exists to answer rather than to join.
 
+### Corrected during the first play test
+
+Three things this was built on turned out to be wrong, all of them asset data that only the
+running game could answer.
+
+**The hoe does not use a level operation.** Its Level ground entry is `mud_road_v2`, and it is
+`m_smooth` with `m_level` false, radius 3 metres, power 1, painting dirt over the same 3. Raise
+ground is `m_raise` and Path is paint only; nothing in the hoe's table uses `m_level` at all.
+Every guard in the mod tested `m_level`, so it correctly decided the hoe was none of its
+business and did nothing, with a clean log. Retargeted onto `m_smooth || m_level`.
+
+**The vanilla radius is 3 metres, not 2.** The 2 was `m_levelRadius`, which this op never
+reads. That moves the whole curve: with `MaxRadius` at 6 nothing changes until about Crafting
+25, and the top of the curve is double the vanilla radius rather than triple.
+
+**The agreement test was asking for something the tool cannot produce.** Requiring the whole
+footprint to agree within 5 cm refused nearly every swing on ground that was visibly being
+flattened, because `SmoothTerrain` eases from full effect at the centre to nothing at the rim -
+a smoothed patch is a shallow dish, not a plateau. It now judges only the eight points nearest
+the crosshair, which are the ones an earlier swing centred on and pulled all the way to its
+target, takes their median, and defaults to a 0.25 m tolerance.
+
+**The hoe's piece table names no skill.** So using it raises nothing and `GetBuildStamina`
+skips its discount branch - there is no double dip here, unlike the hammer, and reach is the
+only thing Crafting buys. It also means the reach is not self-earning, which is the same shape
+as Skaft, where repairing buildings trains nothing either.
+
 ### Known and open
 
-- Never run in a game. Everything above is an argument from decompiled source.
-- Whether the hoe's piece table names Crafting is still unknown. If it does, levelling already
-  earns that skill and already takes vanilla's build stamina discount from it, and this extends
-  a rule the game has instead of inventing one. It is asset data that no decompiler or prefab
-  rip can reach, so the mod logs it once a session under `Verbose`.
+- The height holding across a row of swings has not been watched end to end, nor the ward
+  footprint refusing anything.
+- `SmoothTerrain` clamps its accumulated movement to one metre per point and only a level
+  operation banks that and frees the budget, so flattening with the hoe is capped near a metre
+  per point however the target is chosen. Whether that ceiling is the real obstacle in practice
+  is untested.
 - The appended reach travels to a Jafna owner and is invisible to a vanilla one, by design. Two
   players on very different Crafting levels working the same ground has not been watched.

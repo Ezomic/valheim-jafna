@@ -51,7 +51,7 @@ namespace Jafna
                 + "touching nothing you levelled before behaves exactly like vanilla, which "
                 + "is how you start a new platform at a new height.");
 
-            ContinueTolerance = cfg.Bind("Levelling", "ContinueTolerance", 0.05f,
+            ContinueTolerance = cfg.Bind("Levelling", "ContinueTolerance", 0.25f,
                 "How far apart, in metres, the already-levelled ground under one swing may be "
                 + "before the mod gives up and lets vanilla decide. This is the setting that "
                 + "stops two platforms at different heights being averaged into a ramp "
