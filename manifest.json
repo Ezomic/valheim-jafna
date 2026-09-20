@@ -1,7 +1,7 @@
 {
     "name":  "Jafna",
     "author":  "Robbin Thijssen",
-    "version_number":  "0.1.0",
+    "version_number":  "1.0.0",
     "description":  "Levelling with the hoe continues the flat ground it touches, and your Crafting decides how far it reaches.",
     "dependencies":  [
                          "denikson-BepInExPack_Valheim-5.4.2350"

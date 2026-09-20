@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.1.0 - unreleased
+## 1.0.0 - 20 September 2026
 
-First version. Built, deployed, never run in a game.
+First release. Built, played and corrected in one sitting; the "Verified in game" section
+below is what was actually watched rather than what was argued from the source.
 
 **Levelling continues the flat ground it touches.** Vanilla's level operation sets every point
 under the tool to the height of the placement ghost, which sits wherever your crosshair last
