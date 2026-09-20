@@ -66,10 +66,34 @@ skips its discount branch - there is no double dip here, unlike the hammer, and 
 only thing Crafting buys. It also means the reach is not self-earning, which is the same shape
 as Skaft, where repairing buildings trains nothing either.
 
+### Verified in game, 20 September 2026
+
+Singleplayer, one world, Crafting 52, reach 5,4m against the hoe's own 3,0m.
+
+- **Continuing the flat holds a height across a working area.** Swings metres apart all landed
+  on 32,08-32,10 from crosshairs at 32,66, so over half a metre of drift removed per swing, with
+  the eight nearest points agreeing to within 4-26mm against a 250mm tolerance.
+- **Holding a height works in both directions.** Standing 1,7m above the held number and 1,9m
+  below it, every swing aimed at the held figure rather than at the player's feet. Toggle on and
+  off both clean.
+- **Non-terrain tools are untouched.** `piece_repair` and `woodwall` both report no terrain op
+  and the mod attaches nothing to them.
+
 ### Known and open
 
-- The height holding across a row of swings has not been watched end to end, nor the ward
-  footprint refusing anything.
+- The ward footprint has never refused anything in a test - there was no ward to refuse it.
+- **A held height above about a metre away cannot be reached.** SmoothTerrain clamps its
+  accumulated movement to one metre per point and only a level or raise operation banks that and
+  frees the budget, so holding 32,08 while standing on 33,76 brings the ground down to roughly
+  32,76 and stops, short of the number the panel is showing. That is vanilla's clamp rather than
+  anything here, but holding a height makes it easy to aim further than a metre, so it will be
+  met often. Converting a held swing into a true level operation would remove the ceiling in two
+  lines and would make the hoe markedly stronger; not done, pending a decision.
+- Left Alt is confirmed double booked: mud_road_v2's piece sets both `m_groundPiece` and
+  `m_allowAltGroundPlacement`, which is exactly the condition `Player.UpdatePlacementGhost`
+  requires before it reads `AltPlace`. In practice a tap captured 32,07 on a flat sitting at
+  32,08-32,10, so the single frame of alt placement does not appear to shift the reading. The
+  key is configurable if it ever does.
 - `SmoothTerrain` clamps its accumulated movement to one metre per point and only a level
   operation banks that and frees the budget, so flattening with the hoe is capped near a metre
   per point however the target is chosen. Whether that ceiling is the real obstacle in practice
