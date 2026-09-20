@@ -106,6 +106,19 @@ namespace Jafna
         internal static int LastUsed;
         internal static float LastSpread;
 
+        /// <summary>
+        /// Clears the figures above for a swing that never searched, which a held height does
+        /// not. Without it the log reports whatever the last real search found, and numbers
+        /// that belong to a different swing are worse than no numbers - they are the kind you
+        /// reason from for twenty minutes before noticing they cannot be right.
+        /// </summary>
+        internal static void NoSearch()
+        {
+            LastFound = 0;
+            LastUsed = 0;
+            LastSpread = 0f;
+        }
+
         private static bool Bind()
         {
             if (_bound) return !_bindFailed;

@@ -35,6 +35,8 @@ still start a new platform at a new height: stand clear of the old one and swing
   it uses that height. If it covers none, it behaves exactly like vanilla.
 - **It refuses rather than guesses.** Where two platforms at different heights meet under one
   swing, it hands the decision back to your crosshair instead of averaging them into a ramp.
+- **You can hold a height.** Press Left Alt to pin the one under your crosshair, and every
+  swing flattens toward it wherever you stand, until you press again.
 - **Reach grows with Crafting.** Nothing below about Crafting 25, growing to a 6 metre radius
   at Crafting 60 against the hoe's own 3. Never a discount: a swing costs exactly the stamina
   vanilla charges.
@@ -43,6 +45,31 @@ still start a new platform at a new height: stand clear of the old one and swing
   where that height came from.
 - No new prefabs, items, recipes or saved values. A world played with Jafna is an ordinary
   world, and the ground you shaped is ground vanilla's own operation shaped.
+
+## Holding a height
+
+Continuing the flat answers "what height is this ground meant to be" from the ground itself.
+That is right most of the time and certain none of the time, and two cases it cannot settle
+turned up within an hour of playing: a higher platform beside you captures swings you are
+aiming lower, and a swing crossing a zone boundary has each zone decide from its own half of
+the footprint.
+
+Both are the mod guessing at an intention you already have, so you can state it instead. With
+a levelling tool out, press **Left Alt** and the height under your crosshair is held. Walk
+anywhere, aim anywhere, and every swing eases the ground toward that one number until you press
+again. Nothing is searched for and nothing is guessed while it is on.
+
+The panel says `HOLDING height, press LeftAlt to release` for as long as it lasts. That wording
+is deliberate: the single mistake this feature can cause is forgetting it is on, and a line
+that tells you how to stop cannot be read as decoration.
+
+A held height is not kept across a logout. Coming back, swinging, and watching the ground move
+toward a number you set yesterday for a reason you no longer remember - with nothing on screen
+having changed to warn you - is a worse trap than setting it again.
+
+Left Alt is also vanilla's alt-placement key, which does have a meaning for terrain tools. If
+the placement ghost starts behaving oddly while you use this, move `HoldKey` to something of
+its own. A server never takes a keybind over, so it stays yours whatever the host runs.
 
 ## Reach, and why it is earned
 

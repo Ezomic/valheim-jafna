@@ -290,6 +290,7 @@ namespace Jafna
                 target = heldHeight;
                 source = Flat.Source.Held;
                 pos.y = target - offset;
+                Flat.NoSearch();
             }
             else
             {
