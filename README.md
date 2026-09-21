@@ -181,3 +181,12 @@ station. That is the same shape as Skaft, where repairing buildings trains nothi
 The mod has been in a world and its patches run, but nothing below has been watched end to end:
 the height actually holding across a row of swings, the ward footprint refusing anything, and
 any of it with a second player.
+## Bugs and ideas
+
+Both go to the site. [longhouse.thijssensoftware.nl/bugs](https://longhouse.thijssensoftware.nl/bugs)
+is for anything broken, and [longhouse.thijssensoftware.nl/ideas](https://longhouse.thijssensoftware.nl/ideas)
+is for what a mod should do next. You can vote on other people's ideas there as well.
+
+Signing in takes a Steam or Discord account. I work from that list, so the votes decide what
+I pick up next.
+
