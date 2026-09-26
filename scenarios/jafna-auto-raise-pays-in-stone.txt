@@ -1,0 +1,97 @@
+# Jafna: a flattening swing raises low ground, and only then takes stone.
+#
+# Four claims, one per section:
+#
+#   1. Digging costs nothing. A swing aimed below the ground only lowers, and lowering is free.
+#   2. A swing with nothing to raise costs nothing. On ordinary ground a swing aimed at the
+#      ground itself never needs more than the free metre, so no stone moves.
+#   3. NoBuildCost makes raising free. A swing aimed three metres up raises the ground and your
+#      ten stone are all still there afterwards.
+#   4. Raising takes stone. The same swing with one stone in the pack needs far more than one
+#      stone's worth, so the one stone is taken. If the fill never happened the stone would
+#      still be there, so this also fails when nothing was raised.
+#
+# HOW A SWING IS MADE. A scenario cannot press attack, so `place mud_road_v2` stands in for it:
+# Player.PlacePiece is exactly what the hoe's swing ends in, it instantiates the terrain op and
+# the op's own Awake sends it through Jafna. The `up` argument is what turns it into a test. It
+# puts the op above or below the ground, which is the same thing as your crosshair resting on
+# ground that height away, so the swing aims up or down without anybody holding a height.
+#
+# `place` looks prefabs up in ZNetScene. A hoe entry may be registered nowhere but the hoe's own
+# piece table, the way piece_repair is on the hammer. If step `place mud_road_v2` fails with
+# "no prefab", that is Devkit's lookup and not this mod, and nothing after it means anything.
+#
+# FRESH GROUND EACH TIME. Every swing lands eight metres from the last, so no swing touches
+# ground another one shaped. That matters: Jafna continues a flat it finds under the swing, and
+# a swing on ground an earlier one shaped would take that ground's height instead of the one the
+# scenario aimed at. For the same reason, run it on ground nobody has worked, and walk somewhere
+# new before running it a second time. It leaves a pit and two mounds behind, so not near a base.
+#
+# NO HELD HEIGHT. A held height beats everything, so with Left Alt holding one every swing here
+# would aim at it. The `onscreen HOLDING no` step catches that; press Left Alt and run again.
+#
+# PART OF A STONE CARRIES OVER within a session. Section 4 relies on the swing costing more
+# than whatever part of a stone an earlier run left behind. It will, unless Raise ground turns
+# out to be very cheap per cubic metre, which the log's "Raising ground is priced off" line
+# says. If section 4 keeps its stone on a second run, log out and in and run it once more.
+#
+# It sets Crafting to 0 so the swing is the hoe's own three metres, and puts it back at the end.
+# It sets NoBuildCost and takes it off again. That key is world state, so if the run is stopped
+# halfway, remove it by hand with `removekey NoBuildCost` in the console.
+#
+# Stand on fairly level ground with about twenty metres clear to your right and left.
+
+clear
+give Hoe:1,Stone:10
+god
+skill Crafting 0
+
+tool Hoe mud_road_v2
+wait 1
+
+# Jafna's lines are in the build panel, and nothing is being held.
+onscreen Flattens yes
+onscreen HOLDING no
+
+
+# ---- 1. digging is free: aimed two metres down, straight ahead.
+
+place mud_road_v2 3 0 0 -2
+wait 1
+carrying Stone 10
+
+
+# ---- 2. nothing to raise is free: aimed at the ground itself, eight metres left.
+
+place mud_road_v2 3 -8 0 0
+wait 1
+carrying Stone 10
+
+
+# ---- 3. a NoBuildCost world raises for free: aimed three metres up, eight metres right.
+
+key NoBuildCost
+wait 1
+place mud_road_v2 3 8 0 3
+wait 1
+carrying Stone 10
+unkey NoBuildCost
+wait 1
+
+
+# ---- 4. raising takes stone: the same swing with one stone, sixteen metres left.
+
+# A fresh pack rather than taking nine away, because there is no step that removes part of a
+# stack. The hoe goes with it, so it is given back and taken out again.
+clear
+give Hoe:1,Stone:1
+tool Hoe mud_road_v2
+wait 1
+
+place mud_road_v2 3 -16 0 3
+wait 1
+carrying Stone 0
+
+
+skill Crafting back
+clear

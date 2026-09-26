@@ -15,9 +15,12 @@ namespace Jafna
     ///                            - on the client that owns the zone, which is often somebody
     ///                              else. Receives the radius.
     ///   4. TerrainComp.DoOperation
-    ///                            - same machine. Applies the radius and decides the height.
+    ///                            - same machine. Applies the radius, decides the height, and
+    ///                              raises what the smooth cannot reach. Sends the bill back.
     ///   5. Player.UpdatePlacementGhost
     ///                            - every frame, on the swinging client. The ward footprint.
+    ///   6. TerrainComp.Awake     - every client, every zone. Listens for that bill, which is
+    ///                              how stone comes out of the swinging player's own pack.
     ///
     /// Three and four are separate patches rather than one because the radius has to be read
     /// off the package before vanilla reads it and used after vanilla has parsed it, and the
@@ -191,14 +194,21 @@ namespace Jafna
             if (!JafnaConfig.Enabled.Value) return true;
             if (modifier == null || !Reach.IsFlatten(modifier.m_settings)) return true;
 
-            float radius = Reach.Earned(modifier.m_settings, Player.m_localPlayer);
+            Player player = Player.m_localPlayer;
+            float radius = Reach.Earned(modifier.m_settings, player);
 
-            // Sent when either half of the mod has something to say. A held height has to
-            // travel even at vanilla width, and it is the held case that also settles a swing
-            // crossing a zone line: every zone gets the same number rather than each deciding
-            // for itself from its own half of the footprint.
+            // The share of this swing's shortfall the pack pays for, or -1 for none. Decided once
+            // per swing and cached on the op, so every zone this call is repeated for gets the
+            // same share - see Fill.Plan.
+            float fill = Fill.Plan(modifier, player, radius);
+
+            // Sent when any part of the mod has something to say. A held height has to travel
+            // even at vanilla width, and it is the held case that also settles a swing crossing
+            // a zone line: every zone gets the same number rather than each deciding for itself
+            // from its own half of the footprint. A fill has to travel at vanilla width too,
+            // because the owner is the only machine that can raise the ground.
             bool held = Held.Active;
-            if (radius <= Reach.VanillaRadius(modifier.m_settings) && !held) return true;
+            if (radius <= Reach.VanillaRadius(modifier.m_settings) && !held && fill <= 0f) return true;
 
             ZNetView nview = Reach.View(__instance);
             if (nview == null) return true;
@@ -209,7 +219,7 @@ namespace Jafna
             if (modifier.m_settings.m_rotation) pkg.Write(modifier.transform.forward);
             modifier.m_settings.Serialize(pkg, modifier.gameObject);
 
-            Reach.Append(pkg, radius, held, Held.Height);
+            Reach.Append(pkg, radius, held, Held.Height, fill);
 
             nview.InvokeRPC("RPC_ApplyOperation", pkg);
             return false;
@@ -224,25 +234,29 @@ namespace Jafna
         /// It writes unconditionally, including the "nothing there" value. Leaving a stale
         /// radius behind would apply one player's Crafting to the next player's swing, and
         /// because both swings are perfectly ordinary it would look like the mod randomly
-        /// choosing a width.
+        /// choosing a width. A stale fill share would be worse: it would raise ground on the
+        /// next swing and bill whoever sent that one.
+        ///
+        /// <paramref name="sender"/> is the original method's own first argument, the peer that
+        /// swung. It is kept because the fill's bill has to go back to that player's machine.
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(typeof(TerrainComp), "RPC_ApplyOperation")]
-        private static void ReceiveReach(ZPackage pkg)
+        private static void ReceiveReach(long sender, ZPackage pkg)
         {
             if (!JafnaConfig.Enabled.Value)
             {
-                Reach.SetIncoming(-1f, false, 0f);
+                Reach.SetIncoming(-1f, false, 0f, -1f, 0L);
                 return;
             }
 
-            if (Reach.Peek(pkg, out float radius, out bool held, out float height))
+            if (Reach.Peek(pkg, out float radius, out bool held, out float height, out float fill))
             {
-                Reach.SetIncoming(radius, held, height);
+                Reach.SetIncoming(radius, held, height, fill, sender);
             }
             else
             {
-                Reach.SetIncoming(-1f, false, 0f);
+                Reach.SetIncoming(-1f, false, 0f, -1f, 0L);
             }
         }
 
@@ -263,7 +277,7 @@ namespace Jafna
         {
             if (!JafnaConfig.Enabled.Value) return;
 
-            float incoming = Reach.TakeIncoming(out bool held, out float heldHeight);
+            float incoming = Reach.TakeIncoming(out bool held, out float heldHeight, out float fill, out long sender);
 
             if (!Reach.IsFlatten(modifier)) return;
 
@@ -302,6 +316,11 @@ namespace Jafna
                     pos.y = target - offset;
                 }
             }
+
+            // Once the height is settled and before vanilla's smooth runs, because the fill is
+            // measured against the height this swing is actually aiming at, and the smooth then
+            // adds its own free part on top of it. Does nothing unless the swinger asked and paid.
+            Fill.Apply(__instance, pos + Vector3.up * offset, modifier, fill, sender);
 
             if (JafnaConfig.Verbose.Value)
             {
@@ -405,6 +424,25 @@ namespace Jafna
         internal static float CraftingLevel(Player player)
         {
             return player == null ? 0f : player.GetSkillFactor(Skills.SkillType.Crafting) * 100f;
+        }
+
+        // -- 6. Hearing the bill ----------------------------------------------------------
+
+        /// <summary>
+        /// Registers the fill's bill on every zone's compiler, on every client.
+        ///
+        /// On the compiler's own view rather than as a global routed method, for two reasons. It
+        /// needs no bookkeeping about when a session starts - the compiler registers its own
+        /// RPC_ApplyOperation in this same Awake, and the bill simply lives and dies beside it.
+        /// And the bill is about one zone's ground, so it belongs on the thing that owns that
+        /// ground. A client without Jafna never registers it, and it is never sent one, because
+        /// a bill only answers a fill that a Jafna client asked for.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TerrainComp), "Awake")]
+        private static void HearBill(TerrainComp __instance)
+        {
+            Fill.Listen(__instance);
         }
     }
 }

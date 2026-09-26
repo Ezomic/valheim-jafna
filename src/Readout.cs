@@ -131,8 +131,49 @@ namespace Jafna
             {
                 text += "\n<color=#ff6060>A ward you cannot use is inside this swing.</color>";
             }
+            else
+            {
+                // Only while the swing would actually land. A refused swing raises nothing and
+                // costs nothing, and a price on screen beside a refusal reads as the price of
+                // being refused.
+                string fill = FillLine(player, settings, point, radius);
+                if (fill != null) text += "\n" + fill;
+            }
 
             _lines = text;
+        }
+
+        /// <summary>
+        /// What raising the low ground under this swing will take out of the pack, or null when
+        /// nothing under it needs raising.
+        ///
+        /// Silent when there is nothing to raise, which is most of the time. A line that said
+        /// "costs 0" on every flat swing would teach a player to stop reading it before the swing
+        /// where it matters.
+        ///
+        /// "That height" is the height at the end of the line above, which is the one the swing
+        /// is filling toward. The cost is the number that moves as you look around, so it goes
+        /// last, by the same rule as every other line here. When the pack is short, what it holds
+        /// goes first and stays still, and the full price follows it.
+        ///
+        /// Item names are written as the game's own $ tokens and come out in the player's
+        /// language, because the build panel localises the description on every frame it draws.
+        /// </summary>
+        private static string FillLine(Player player, TerrainOp.Settings settings, Vector3 point, float radius)
+        {
+            switch (Fill.Quote(player, settings, point, radius, out string cost, out string carried))
+            {
+                case Fill.Terms.Free:
+                    return "Filling up to that height is free in this world";
+                case Fill.Terms.Covered:
+                    return "Filling up to that height is already paid for";
+                case Fill.Terms.Paid:
+                    return "Filling up to that height costs " + Num(cost);
+                case Fill.Terms.Short:
+                    return "You carry " + carried + ", filling all of it costs " + Num(cost);
+                default:
+                    return null;
+            }
         }
 
         internal static void Clear()

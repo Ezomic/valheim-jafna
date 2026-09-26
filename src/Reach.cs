@@ -55,6 +55,8 @@ namespace Jafna
         private static float _incoming = -1f;
         private static bool _incomingHeld;
         private static float _incomingHeight;
+        private static float _incomingFill = -1f;
+        private static long _incomingSender;
 
         private static bool Bind()
         {
@@ -209,12 +211,20 @@ namespace Jafna
 
         // -- The wire ------------------------------------------------------------------
 
-        internal static void Append(ZPackage pkg, float radius, bool held, float height)
+        /// <summary>
+        /// Writes the mod's four fields and then the fill share. The share goes last and is read
+        /// only when it is there, because the first four are what Jafna 1.0.0 wrote and still
+        /// reads: an owner on that version finds its magic, reads its thirteen bytes, never looks
+        /// further, and applies the swing without raising anything or sending a bill. The swing
+        /// then costs nothing, which is the right way to fail for a price nobody collected.
+        /// </summary>
+        internal static void Append(ZPackage pkg, float radius, bool held, float height, float fill)
         {
             pkg.Write(Magic);
             pkg.Write(radius);
             pkg.Write(held);
             pkg.Write(height);
+            pkg.Write(fill);
         }
 
         /// <summary>
@@ -224,11 +234,12 @@ namespace Jafna
         /// package's final int is a prefab hash, and the four bytes in front of it are a float
         /// that could in principle equal the magic.
         /// </summary>
-        internal static bool Peek(ZPackage pkg, out float radius, out bool held, out float height)
+        internal static bool Peek(ZPackage pkg, out float radius, out bool held, out float height, out float fill)
         {
             radius = -1f;
             held = false;
             height = 0f;
+            fill = -1f;
 
             if (pkg == null) return false;
 
@@ -248,6 +259,10 @@ namespace Jafna
                 held = pkg.ReadBool();
                 height = pkg.ReadSingle();
 
+                // The fill share, when the swinger's version writes one. A package from 1.0.0
+                // ends here, and no share means no fill was asked for.
+                if (pkg.GetPos() + 4 <= pkg.Size()) fill = pkg.ReadSingle();
+
                 return radius > 0f;
             }
             catch
@@ -262,22 +277,33 @@ namespace Jafna
             }
         }
 
-        internal static void SetIncoming(float radius, bool held, float height)
+        /// <summary>
+        /// <paramref name="sender"/> is the peer that swung, which is where a fill's bill goes. It
+        /// rides along with the rest because RPC_ApplyOperation is the only place that knows it:
+        /// DoOperation is handed a position and a settings object and nothing about who asked.
+        /// </summary>
+        internal static void SetIncoming(float radius, bool held, float height, float fill, long sender)
         {
             _incoming = radius;
             _incomingHeld = held;
             _incomingHeight = height;
+            _incomingFill = fill;
+            _incomingSender = sender;
         }
 
-        internal static float TakeIncoming(out bool held, out float height)
+        internal static float TakeIncoming(out bool held, out float height, out float fill, out long sender)
         {
             float r = _incoming;
             held = _incomingHeld;
             height = _incomingHeight;
+            fill = _incomingFill;
+            sender = _incomingSender;
 
             _incoming = -1f;
             _incomingHeld = false;
             _incomingHeight = 0f;
+            _incomingFill = -1f;
+            _incomingSender = 0L;
 
             return r;
         }

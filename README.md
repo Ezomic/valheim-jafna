@@ -37,14 +37,17 @@ still start a new platform at a new height: stand clear of the old one and swing
   swing, it hands the decision back to your crosshair instead of averaging them into a ramp.
 - **You can hold a height.** Press Left Alt to pin the one under your crosshair, and every
   swing flattens toward it wherever you stand, until you press again.
+- **Low ground is raised with stone.** When a swing wants the ground higher than the hoe can
+  lift it, the rest is raised anyway and paid for from your pack, at the rate the hoe's own
+  Raise ground charges.
 - **Reach grows with Crafting.** Nothing below about Crafting 25, growing to a 6 metre radius
   at Crafting 60 against the hoe's own 3. Never a discount: a swing costs exactly the stamina
   vanilla charges.
 - **A ward you cannot use blocks the whole swing, not just its centre.**
-- **The build panel shows the numbers**: the reach you have, the height the swing will use, and
-  where that height came from.
+- **The build panel shows the numbers**: the reach you have, the height the swing will use,
+  where that height came from, and what raising the low ground will cost.
 - No new prefabs, items, recipes or saved values. A world played with Jafna is an ordinary
-  world, and the ground you shaped is ground vanilla's own operation shaped.
+  world, and the ground you shaped is ground vanilla's own operations shaped.
 
 ## Holding a height
 
@@ -63,13 +66,10 @@ The panel says `HOLDING height, press LeftAlt to release` for as long as it last
 is deliberate: the single mistake this feature can cause is forgetting it is on, and a line
 that tells you how to stop cannot be read as decoration.
 
-**A held height more than about a metre from the ground will not be reached, and that is
-vanilla rather than this mod.** The hoe's flattening eases each point and caps its total
-movement at roughly one metre; only raising ground banks that and frees the budget again. So
-hold 32m, stand on 34m, and the ground comes down to about 33m and then stops, short of the
-number the panel is still showing. Use Raise ground to get within a metre first. Making a held
-swing ignore the cap was considered and rejected: it would turn the hoe into a tool that sets
-ground to any height in one swing, which is a different mod.
+Hold a height above the ground and the swing raises it all the way, for stone. The next section
+has the price. Hold one more than about a metre below the ground and the ground still stops
+short: hold 32m, stand on 34m, and it comes down to about 33m and no further. The hoe only digs
+a metre, and digging is the pickaxe's job.
 
 A held height is not kept across a logout. Coming back, swinging, and watching the ground move
 toward a number you set yesterday for a reason you no longer remember - with nothing on screen
@@ -78,6 +78,38 @@ having changed to warn you - is a worse trap than setting it again.
 Left Alt is also vanilla's alt-placement key, which does have a meaning for terrain tools. If
 the placement ghost starts behaving oddly while you use this, move `HoldKey` to something of
 its own. A server never takes a keybind over, so it stays yours whatever the host runs.
+
+## Raising low ground, and what it costs
+
+The hoe's Level ground moves each point a metre at most. It eases the point toward the height
+the swing is aiming at, keeps a running total, and stops once that total reaches a metre. Only
+raising ground clears the total again. So a swing aimed well above the ground used to bring it
+up a metre and then do nothing, however often you swung, while the panel kept showing a height
+the ground never reached.
+
+Now the rest is raised and you pay for it in stone. Hold 34m while standing on 32m and the
+swing brings the ground all the way up, taking stone from your pack as it goes.
+
+The price is the hoe's own. Jafna finds the Raise ground entry on the hoe, takes what it costs,
+and works out how much ground one Raise ground swing adds to flat ground. Filling costs stone at
+that rate per cubic metre. Raising the same ground by hand costs the same or more, because Raise
+ground adds less on a slope than on the flat. Both numbers come from the running game and go in
+the log once a session, so if another mod changes what Raise ground costs, filling follows it.
+
+Only the part the hoe could not have done is charged. The first metre at each point is still
+free, as it always was, and a swing with nothing to raise costs nothing. Stone leaves your pack
+whole. When a swing needs part of a stone, a whole one is taken and the rest is kept toward your
+next swing until you log out.
+
+When you run short, the swing raises what your stone pays for, evenly across the whole patch,
+and the middle of the screen says you ran out. The build panel shows what a swing will cost
+before you take it, and what you carry when that is not enough.
+
+A world with NoBuildCost set raises for free. The nocost command lifts the limit but still takes
+any stone you carry, which is what vanilla's Raise ground does as well.
+
+`AutoRaise` in the config turns this off and gives the one metre ceiling back. On a server the
+host decides it.
 
 ## Reach, and why it is earned
 
@@ -122,8 +154,8 @@ in `BepInEx/plugins/Jafna/`.
 Then start the game once and quit. That first run writes the config file. It does not exist
 before the mod has loaded, which is the usual reason people think it is broken.
 
-Core is optional and soft. With it, Jafna joins the version gate and the host's reach and ward
-settings are the ones everybody plays by. Without it the mod works exactly the same for you,
+Core is optional and soft. With it, Jafna joins the version gate and the host's reach, ward and
+raising settings are the ones everybody plays by. Without it the mod works exactly the same for you,
 and the ward rule becomes an agreement between players rather than a property of the server.
 
 ## Settings
@@ -139,6 +171,7 @@ worth knowing exist:
   trusting it. A smoothed patch is a shallow dish rather than a plateau, so this is looser than
   it looks like it should be.
 - `RespectWardFootprint` is the ward rule above.
+- `AutoRaise` is raising low ground for stone. On by default.
 - `ShowReadout` is the build panel lines.
 
 BepInEx writes every entry to disk on the first run and the saved value beats a later default
@@ -154,6 +187,14 @@ appends the number in a place nothing reads. An owner running Jafna finds it and
 owner without Jafna never looks and applies a perfectly ordinary vanilla operation. Nothing
 breaks in either direction, and a player without the mod is never refused the server.
 
+Raising ground for stone splits the same way. Your client works out how much of the fill your
+pack pays for and sends that share along with the reach. The owner raises that much, tells your
+client what it raised, and your client takes the stone. Paying afterwards is on purpose: an owner
+without this version raises nothing and sends no bill, so you pay nothing for ground that never
+moved. When somebody else owns the zone your view of the ground can be a swing behind, so two
+quick swings can be billed for more stone than you held. The difference is owed, and it comes out
+of the stone you carry at your next fill.
+
 ## What the hoe actually does
 
 Read off the running game on 20 September 2026, because none of it is on disk. The hoe's
@@ -164,11 +205,13 @@ Level ground entry is `mud_road_v2`, and it is a **smooth** operation, not a lev
 
 That matters for what this mod can promise. `SmoothTerrain` eases each point toward the target
 by `1 - (distance/radius)^power` and clamps its own accumulated movement to one metre per
-point, and only a level operation ever banks that into the permanent height and frees the
-budget again. So flattening with the hoe is asymptotic by design and capped near a metre per
-point, which is why a real slope still wants Raise ground first. Jafna does not change any of
-that. It changes the height all those swings are easing toward, so they converge on one answer
-instead of following your crosshair.
+point, and only a level or raise operation ever banks that into the permanent height and frees
+the budget again. So flattening with the hoe is asymptotic by design and capped near a metre per
+point. Jafna leaves the easing alone. It changes the height all those swings are easing toward,
+so they converge on one answer instead of following your crosshair. Going up, it also banks what
+the cap would have cut off into the same permanent height Raise ground writes to, and charges
+stone for it. The swing's own metre is left where vanilla keeps it, so a swing never gets a
+fresh free metre out of being filled.
 
 **The hoe's piece table names no skill.** Using it raises nothing, and `Player.GetBuildStamina`
 skips its discount branch, so unlike the hammer there is no second reward hiding behind the
@@ -181,6 +224,11 @@ station. That is the same shape as Skaft, where repairing buildings trains nothi
 The mod has been in a world and its patches run, but nothing below has been watched end to end:
 the height actually holding across a row of swings, the ward footprint refusing anything, and
 any of it with a second player.
+
+Raising low ground for stone has not been in a game at all yet. That covers the price Raise
+ground resolves to, a fill landing where the panel said it would, the stone it takes, and the
+bill travelling between two machines.
+
 ## Bugs and ideas
 
 Both go to the site. [longhouse.thijssensoftware.nl/bugs](https://longhouse.thijssensoftware.nl/bugs)

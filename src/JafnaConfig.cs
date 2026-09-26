@@ -22,6 +22,7 @@ namespace Jafna
         internal static ConfigEntry<float> ContinueTolerance;
         internal static ConfigEntry<int> ContinueMinVertices;
         internal static ConfigEntry<KeyCode> HoldKey;
+        internal static ConfigEntry<bool> AutoRaise;
 
         internal static ConfigEntry<float> MinRadius;
         internal static ConfigEntry<float> MaxRadius;
@@ -86,6 +87,29 @@ namespace Jafna
                 + "use this, move it to a key of its own. Keybinds are never taken over by a "
                 + "server, so this one stays yours whatever the host runs.");
 
+            // A new key rather than a changed default, so it arrives switched on in a cfg that
+            // already exists: BepInEx writes a missing key with the default from code, and only a
+            // key already in the file beats it.
+            AutoRaise = cfg.Bind("Levelling", "AutoRaise", true,
+                "When a flattening swing needs the ground higher than the hoe's flattening can lift "
+                + "it, raise the rest and pay for it with stone from your pack. The hoe's Level "
+                + "ground eases each point toward its target and stops once it has moved that point "
+                + "one metre, and only raising ground frees that metre again, which is why a held "
+                + "height far above the ground used to stop short. With this on, the part the "
+                + "flattening cannot reach is raised anyway, at the price of the hoe's own Raise "
+                + "ground: whatever that entry costs, divided by the ground one Raise ground swing "
+                + "adds to flat ground. Both are read from the game, not written here. So filling "
+                + "costs the same stone per cubic metre as raising by hand, never less. Only the part "
+                + "the flattening could not have done is charged. The first metre at every point "
+                + "stays free as it is in vanilla, and a swing with nothing to raise costs nothing. "
+                + "Stone comes out whole and the rest is kept toward your next swing until you log "
+                + "out. Short of stone, a swing raises as much as your stone pays for, evenly across "
+                + "the swing, and says so. In a world with NoBuildCost set it is free, and the "
+                + "nocost command lifts the limit but still takes the stone you carry, which is what "
+                + "vanilla's Raise ground does too. Lowering is unchanged: ground more than about a "
+                + "metre above the target still stops short, because digging is the pickaxe's job. "
+                + "Off gives back the one metre ceiling. On a server the host decides this.");
+
             // -- Reach -------------------------------------------------------------------
 
             MinRadius = cfg.Bind("Reach", "MinRadius", 0f,
@@ -135,8 +159,9 @@ namespace Jafna
 
             ShowReadout = cfg.Bind("Readout", "ShowReadout", true,
                 "Put the numbers on screen while a levelling tool is out: the height under "
-                + "your crosshair, the height the swing will actually use, and whether that "
-                + "came from the crosshair or from flat ground the swing is continuing. "
+                + "your crosshair, the height the swing will actually use, whether that "
+                + "came from the crosshair or from flat ground the swing is continuing, and "
+                + "what raising the low ground under it will take from your pack. "
                 + "Without it the mod is invisible and indistinguishable from the hoe "
                 + "behaving oddly, which is the complaint it was built to answer.");
 

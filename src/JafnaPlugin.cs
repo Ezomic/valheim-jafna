@@ -38,8 +38,14 @@ namespace Jafna
     /// number in a place nothing reads - see Reach.cs. An owner without Jafna never looks, and
     /// applies an ordinary vanilla op.
     ///
+    /// Raising what the flattening cannot reach costs stone, at the rate the hoe's own Raise
+    /// ground charges, and it splits across the same two machines: the swinger decides how much
+    /// its pack pays for, the owner raises that much and sends back what it used, and the swinger
+    /// pays it. See Fill.cs for why it is paid after rather than before.
+    ///
     /// No prefabs, no items, no recipes, no saved values of its own. A world played with Jafna
-    /// is an ordinary world; the ground you shaped is ground vanilla's own op shaped.
+    /// is an ordinary world; the ground you shaped is ground vanilla's own ops shaped, and the
+    /// raised part sits in the same level delta vanilla's Raise ground writes to.
     ///
     /// There is deliberately no BepInProcess attribute. A dedicated server runs
     /// valheim_server.exe, and Core's gate only refuses on the server side of RPC_PeerInfo -
@@ -142,6 +148,11 @@ namespace Jafna
             // the server for no gain. Core treats HostOnly symmetrically, so a Jafna client can
             // also still join a server that does not run it and simply gets vanilla reach.
             //
+            // Raising ground with stone does not change that. A client without Jafna never asks
+            // for a fill, and an owner without it never reads one and never bills, so a mixed
+            // table gets the one metre ceiling and nobody is charged for ground that was not
+            // raised.
+            //
             // What standing without Core costs here is the ward rule. Nothing then refuses a
             // client that lacks the plugin, so "the footprint has to clear the ward" becomes an
             // agreement between players rather than a property of the server. That is a real
@@ -151,11 +162,13 @@ namespace Jafna
 
             // Registering already absorbs the whole config file, so these are a formality. They
             // are still worth writing: naming an entry here is saying out loud that the host
-            // decides it, and for these three that is the point. Reach and the ward footprint
-            // decide what a player may do to shared ground, and a table where everyone brought
-            // their own MaxRadius is not a table anybody agreed to sit at.
+            // decides it, and for these four that is the point. Reach, the ward footprint and
+            // whether a swing may raise ground for stone decide what a player may do to shared
+            // ground, and a table where everyone brought their own MaxRadius is not a table
+            // anybody agreed to sit at.
             Suite.Sync(JafnaConfig.Enabled);
             Suite.Sync(JafnaConfig.MaxRadius);
+            Suite.Sync(JafnaConfig.AutoRaise);
             Suite.Sync(JafnaConfig.RespectWardFootprint);
 
             // If the mod reads a data file that decides what it does, hash it too. The gate

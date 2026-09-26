@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+**Low ground is raised, and paid for in stone.** This reverses the call made on 20 September
+to keep the one metre ceiling. The hoe's flattening moves a point a metre at most and then
+stops, so a swing aimed well above the ground never got there. Now the rest is raised, and your
+pack pays for it at the rate of the hoe's own Raise ground: what that entry costs, divided by
+the ground one Raise ground swing adds to flat ground. Both numbers are read from the running
+game and written to the log once. Only the part the flattening could not have done is charged.
+The first metre at each point stays free and a swing with nothing to raise costs nothing. Stone
+comes out whole and the remainder carries over to the next swing. Short of stone, a swing raises
+what the stone pays for, evenly across the patch, and says so. NoBuildCost makes it free, and
+nocost behaves the way it does for vanilla's Raise ground. It is on by default as `AutoRaise`,
+and the host decides it on a server.
+
+The build panel says what a swing will cost before you take it, and what you carry when that is
+not enough.
+
+In multiplayer the client that owns the zone raises the ground and sends your client the bill,
+and your client pays it out of your pack. A zone owner without this version raises nothing and
+bills nothing, so you are never charged for ground that did not move. The share rides at the end
+of the message Jafna already appends, where 1.0.0 stops reading.
+
+Lowering has not changed. Ground more than about a metre above the target still stops short.
+
+Not run in a game yet. The price Raise ground resolves to, the fill itself and the bill between
+two machines are all untested.
+
 ## 1.0.0 - 20 September 2026
 
 First release. Built, played and corrected in one sitting; the "Verified in game" section
