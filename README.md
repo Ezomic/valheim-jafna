@@ -69,7 +69,7 @@ that tells you how to stop cannot be read as decoration.
 Hold a height above the ground and the swing raises it all the way, for stone. The next section
 has the price. Hold one more than about a metre below the ground and the ground still stops
 short: hold 32m, stand on 34m, and it comes down to about 33m and no further. The hoe only digs
-a metre, and digging is the pickaxe's job.
+a metre, or two on ground it raised before, and digging is the pickaxe's job.
 
 A held height is not kept across a logout. Coming back, swinging, and watching the ground move
 toward a number you set yesterday for a reason you no longer remember - with nothing on screen
@@ -88,18 +88,26 @@ up a metre and then do nothing, however often you swung, while the panel kept sh
 the ground never reached.
 
 Now the rest is raised and you pay for it in stone. Hold 34m while standing on 32m and the
-swing brings the ground all the way up, taking stone from your pack as it goes.
+swing brings the ground all the way up, taking stone from your pack as it goes. The game still
+never lets ground sit more than eight metres above where the world made it, so a swing stops
+there and you pay only for what it raised.
 
 The price is the hoe's own. Jafna finds the Raise ground entry on the hoe, takes what it costs,
 and works out how much ground one Raise ground swing adds to flat ground. Filling costs stone at
-that rate per cubic metre. Raising the same ground by hand costs the same or more, because Raise
-ground adds less on a slope than on the flat. Both numbers come from the running game and go in
-the log once a session, so if another mod changes what Raise ground costs, filling follows it.
+that rate per cubic metre. Both numbers come from the running game and go in the log once a
+session, so if another mod changes what Raise ground costs, filling follows it.
+
+On a slope Raise ground adds less for the same stone, so there filling is cheaper than doing it
+by hand. Alternating Raise ground and Level ground by hand can still beat it. Every Raise ground
+gives the next Level ground swing its free metre back, and a fill does not. If it did, every
+swing would get a free metre and flattening would raise ground for nothing.
 
 Only the part the hoe could not have done is charged. The first metre at each point is still
-free, as it always was, and a swing with nothing to raise costs nothing. Stone leaves your pack
-whole. When a swing needs part of a stone, a whole one is taken and the rest is kept toward your
-next swing until you log out.
+free, as it always was, and a swing with nothing to raise costs nothing. A point the swing would
+lift by less than three centimetres is left alone and costs nothing, so going over ground that
+is already flat does not eat stone. Stone leaves your pack whole. When a swing needs part of a
+stone, a whole one is taken and the rest is kept toward your next swing until you log out. If
+the entry you swing costs stone of its own, the fill leaves that much in your pack for it.
 
 When you run short, the swing raises what your stone pays for, evenly across the whole patch,
 and the middle of the screen says you ran out. The build panel shows what a swing will cost
@@ -191,9 +199,15 @@ Raising ground for stone splits the same way. Your client works out how much of 
 pack pays for and sends that share along with the reach. The owner raises that much, tells your
 client what it raised, and your client takes the stone. Paying afterwards is on purpose: an owner
 without this version raises nothing and sends no bill, so you pay nothing for ground that never
-moved. When somebody else owns the zone your view of the ground can be a swing behind, so two
-quick swings can be billed for more stone than you held. The difference is owed, and it comes out
-of the stone you carry at your next fill.
+moved.
+
+When somebody else owns the zone, the stone for a swing leaves your pack once their machine
+answers. Two quick swings can therefore be billed for more stone than you held. The difference
+is owed, and it comes out of the stone you carry at your next fill.
+
+Your view of that ground can also be a swing behind. A quick second swing may still see ground
+the first one already raised, so it comes up only part of the way and says you ran short while
+you still have stone. It takes less stone, not more, and the next swing finishes the patch.
 
 ## What the hoe actually does
 

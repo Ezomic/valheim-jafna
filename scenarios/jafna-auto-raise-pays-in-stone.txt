@@ -5,8 +5,10 @@
 #   1. Digging costs nothing. A swing aimed below the ground only lowers, and lowering is free.
 #   2. A swing with nothing to raise costs nothing. On ordinary ground a swing aimed at the
 #      ground itself never needs more than the free metre, so no stone moves.
-#   3. NoBuildCost makes raising free. A swing aimed three metres up raises the ground and your
-#      ten stone are all still there afterwards.
+#   3. NoBuildCost takes no stone. A swing aimed three metres up leaves your ten stone where they
+#      are. This half is all a scenario can check: no step reads the height of the ground, so a
+#      fill that silently did nothing would pass here too. Whether the ground rose is manual
+#      step 3 below.
 #   4. Raising takes stone. The same swing with one stone in the pack needs far more than one
 #      stone's worth, so the one stone is taken. If the fill never happened the stone would
 #      still be there, so this also fails when nothing was raised.
@@ -17,9 +19,11 @@
 # puts the op above or below the ground, which is the same thing as your crosshair resting on
 # ground that height away, so the swing aims up or down without anybody holding a height.
 #
-# `place` looks prefabs up in ZNetScene. A hoe entry may be registered nowhere but the hoe's own
-# piece table, the way piece_repair is on the hammer. If step `place mud_road_v2` fails with
-# "no prefab", that is Devkit's lookup and not this mod, and nothing after it means anything.
+# `place` looks prefabs up in ZNetScene, and this step will PROBABLY FAIL there. The game finds
+# terrain ops through ObjectDB's own list, and on 20 September a Devkit rip could not find the
+# hoe's entries in ZNetScene or ObjectDB. If `place mud_road_v2` fails with "no prefab", that is
+# Devkit's lookup and not this mod, nothing after it means anything, and the manual steps below
+# are the test. Devkit's `place` needs to fall back to the equipped tool's piece table.
 #
 # FRESH GROUND EACH TIME. Every swing lands eight metres from the last, so no swing touches
 # ground another one shaped. That matters: Jafna continues a flat it finds under the swing, and
@@ -40,6 +44,24 @@
 # halfway, remove it by hand with `removekey NoBuildCost` in the console.
 #
 # Stand on fairly level ground with about twenty metres clear to your right and left.
+#
+# MANUAL STEPS, for what no step can see. Verbose=true in the cfg first.
+#
+#   1. Equip the hoe, select Level ground. Expected: one log line "Raising ground is priced off
+#      'raise_v2' ... one swing adds X cubic metres to flat ground for Stone xN".
+#   2. Carry 50 Stone. Stand on something 2-3m above the ground around it, aim at it, press
+#      Left Alt. Walk down and aim at the low ground. Expected: the panel says "Filling up to
+#      that height costs N Stone". Swing once. Expected: the middle of the patch rises to the
+#      held height and about N Stone leave the pack.
+#   3. Type `setkey NoBuildCost` in the console (it needs devcommands), hold a height 3m above
+#      fresh ground and swing. Expected: the middle of the patch reaches the held height and no
+#      stone leaves the pack. `removekey NoBuildCost` afterwards.
+#   4. Keep the held height and fill an area clearly wider than one swing, walking and swinging
+#      until all of it looks flat. Drop every stone you carry. Stand in the middle and swing
+#      twice on the same spot. Expected: before the second swing the panel shows no cost line,
+#      and the second swing puts nothing in the middle of the screen.
+#   5. Hold a height 2m below the ground and swing. Expected: no cost line, no stone taken, and
+#      the ground drops about a metre and stops.
 
 clear
 give Hoe:1,Stone:10
@@ -68,7 +90,7 @@ wait 1
 carrying Stone 10
 
 
-# ---- 3. a NoBuildCost world raises for free: aimed three metres up, eight metres right.
+# ---- 3. a NoBuildCost world takes no stone: aimed three metres up, eight metres right.
 
 key NoBuildCost
 wait 1

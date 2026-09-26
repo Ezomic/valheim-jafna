@@ -37,7 +37,7 @@ namespace Jafna
         /// one thing to compare and exactly one thing to undo.
         /// </summary>
         internal static void Update(
-            Player player, TerrainOp.Settings settings, Vector3 point, float radius, bool wardClear)
+            Player player, TerrainOp.Settings settings, Vector3 point, float radius, bool wardClear, bool lands)
         {
             if (!JafnaConfig.ShowReadout.Value)
             {
@@ -131,7 +131,7 @@ namespace Jafna
             {
                 text += "\n<color=#ff6060>A ward you cannot use is inside this swing.</color>";
             }
-            else
+            else if (lands)
             {
                 // Only while the swing would actually land. A refused swing raises nothing and
                 // costs nothing, and a price on screen beside a refusal reads as the price of
@@ -156,12 +156,18 @@ namespace Jafna
         /// last, by the same rule as every other line here. When the pack is short, what it holds
         /// goes first and stays still, and the full price follows it.
         ///
+        /// When the entry itself costs some of the same item, the short line says so between
+        /// the two. That stone is taken by vanilla after the swing and the fill leaves it alone,
+        /// so without the clause "you carry 5, filling costs 5" would read as enough and the
+        /// swing would then say it ran short. The other lines leave it out, because vanilla's
+        /// own requirement list in the same panel already shows it.
+        ///
         /// Item names are written as the game's own $ tokens and come out in the player's
         /// language, because the build panel localises the description on every frame it draws.
         /// </summary>
         private static string FillLine(Player player, TerrainOp.Settings settings, Vector3 point, float radius)
         {
-            switch (Fill.Quote(player, settings, point, radius, out string cost, out string carried))
+            switch (Fill.Quote(player, settings, point, radius, out string cost, out string carried, out string own))
             {
                 case Fill.Terms.Free:
                     return "Filling up to that height is free in this world";
@@ -170,7 +176,9 @@ namespace Jafna
                 case Fill.Terms.Paid:
                     return "Filling up to that height costs " + Num(cost);
                 case Fill.Terms.Short:
-                    return "You carry " + carried + ", filling all of it costs " + Num(cost);
+                    return "You carry " + carried
+                           + (string.IsNullOrEmpty(own) ? "" : ", the swing itself takes " + own)
+                           + ", filling all of it costs " + Num(cost);
                 default:
                     return null;
             }

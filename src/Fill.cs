@@ -54,9 +54,19 @@ namespace Jafna
     ///
     /// When the swinger owns the zone, which is singleplayer and most of the time on a server,
     /// every step of that is one synchronous call and the bill is exact. When somebody else owns
-    /// it, the swinger's copy of the ground can be a swing behind, so a bill can come to more than
-    /// the pack held. The difference is carried as a debt against the next fill rather than
-    /// forgiven, so rapid swings cannot be used to raise ground for nothing.
+    /// it, two things run a round trip behind.
+    ///
+    ///  - The bill. A second quick swing is planned against stone the first one's bill is about to
+    ///    take, so the two bills together can come to more than the pack held. The difference is
+    ///    carried as a debt against the next fill rather than forgiven, so rapid swings cannot be
+    ///    used to raise ground for nothing.
+    ///  - The ground. The swinger's copy can still show ground the last swing already raised, so
+    ///    it overestimates what is left, the share comes out below one with stone to spare, the
+    ///    patch comes up only part way and the swinger is told it ran short when it did not. That
+    ///    is left alone on purpose. It costs less stone rather than more, the next swing finishes
+    ///    the job, and every fix tried on paper either let the two sides of a zone line stop at
+    ///    different heights or needed the owner to know about zones it does not own. It is in the
+    ///    README's multiplayer section.
     /// </summary>
     internal static class Fill
     {
@@ -69,6 +79,29 @@ namespace Jafna
         /// float noise at one rim point and take a whole stone for it.
         /// </summary>
         private const float MinVolume = 0.01f;
+
+        /// <summary>
+        /// The smallest paid lift one point is given, in metres. A point that would be raised
+        /// less than this is left where it is and not charged for.
+        ///
+        /// MinVolume alone was not enough, and the reason is the fill itself. A filled point keeps
+        /// its smooth delta pinned at the clamp (see the class comment), so from then on every
+        /// upward centimetre at that point is paid lift, and the hoe eases toward its target
+        /// rather than landing on it, so the rim of every swing is left a little short. Worked
+        /// through on paper in review (not yet seen in a game), a touch-up pass over a finished
+        /// terrace finds a few millimetres at dozens of points, which sums to several times
+        /// MinVolume: each swing takes part of a stone, the panel flips between a price and
+        /// "already paid for", and with an empty pack every swing over your own flat yard says
+        /// you are out of stone. Ground hoed before this version carries pinned deltas too, so it
+        /// is not only filled ground.
+        ///
+        /// Per point rather than per swing, because the complaint is per point: a dip you cannot
+        /// see is not worth stone however many of them one swing covers. Leaving it unraised
+        /// rather than raising it free is what stops the floor becoming a free raise in small
+        /// steps. Three centimetres is under what the terrain mesh shows as a bump, and a point
+        /// short by more than that is still filled the next time a swing centres near it.
+        /// </summary>
+        private const float MinLift = 0.03f;
 
         /// <summary>
         /// How long after asking for a fill a bill is still accepted, in seconds. A bill with no
@@ -264,7 +297,14 @@ namespace Jafna
         /// Flat ground is the full-value swing. RaiseTerrain lifts a point toward the ghost's height
         /// plus that amount and never by more than that amount, so on flat ground under the ghost
         /// every point gets all of it. On a slope a vanilla swing adds less for the same stone, so
-        /// pricing off flat ground is the cheapest honest reading of what Raise ground charges.
+        /// there filling is the cheaper way up.
+        ///
+        /// It is not the cheapest way up overall, and the README says so. RaiseTerrain also zeroes
+        /// the smooth delta at every point it lifts, which hands the next Level ground swing its
+        /// free metre back, so a player alternating Raise ground and Level ground by hand gets that
+        /// metre again on every pair of swings. A fill deliberately does not give it back (see the
+        /// class comment), so hand alternation can beat this rate. That is a known gap, written
+        /// down, rather than an oversight.
         /// </summary>
         internal static float RaiseVolume(TerrainOp.Settings s, float scale)
         {
@@ -316,20 +356,35 @@ namespace Jafna
         /// takes a whole one and keeps 0.7 toward the next, so small raises are paid for at the
         /// same rate as large ones and nothing rounds away in either direction.
         ///
-        /// Held for the session and for one character, like the held height. It is never more
-        /// than one of each item, and saving it would mean a value of ours in the player profile
-        /// for the sake of less than a stone.
+        /// Held for one character in one session, like the held height. It is never more than
+        /// one of each item, and saving it would mean a value of ours in the player profile for
+        /// the sake of less than a stone.
         /// </summary>
         private static readonly Dictionary<string, float> Credit = new Dictionary<string, float>();
 
         private static long _ledgerFor;
+        private static ZNet _ledgerIn;
 
+        /// <summary>
+        /// Clears the ledger when the character or the session changes.
+        ///
+        /// The character alone is not enough, and the first version keyed on it alone.
+        /// <c>GetPlayerID</c> is the id saved in the profile, the same after every logout and in
+        /// every world, so credit and debt followed a character out of a server and into a
+        /// singleplayer world while the README, the cfg and the scenario all said they ended at
+        /// logout. The session is the <c>ZNet</c> instance: the game builds one when you enter a
+        /// world and destroys it when you leave, and Unity's <c>==</c> reads a destroyed one as
+        /// null, so a new world never compares equal to the last. A respawn keeps both, which is
+        /// right, because dying is not a way to clear a debt.
+        /// </summary>
         private static void Ledger(Player player)
         {
             long id = player.GetPlayerID();
-            if (id == _ledgerFor) return;
+            ZNet net = ZNet.instance;
+            if (id == _ledgerFor && net == _ledgerIn) return;
 
             _ledgerFor = id;
+            _ledgerIn = net;
             Credit.Clear();
         }
 
@@ -339,11 +394,48 @@ namespace Jafna
         }
 
         /// <summary>
-        /// Cubic metres of fill the player can pay for right now, counting what is already paid.
-        /// Infinity when nothing is limiting: a free entry, a NoBuildCost world, or the nocost
-        /// cheat, which vanilla also lets past its requirement check.
+        /// How many of <paramref name="item"/> the swing's own entry costs, which vanilla takes
+        /// after the swing and which the fill must therefore leave in the pack.
+        ///
+        /// The order is the whole reason. When this machine owns the zone the bill is paid inside
+        /// <c>TerrainOp.Awake</c>, which runs inside <c>PlacePiece</c>, and vanilla only calls
+        /// <c>ConsumeResources</c> for the entry after that returns. <c>Inventory.RemoveItem</c>
+        /// takes what is there and says nothing when it is short, and the "can you afford it"
+        /// check ran before the swing. So a fill allowed to count every stone could spend the
+        /// entry's own price, and vanilla would then collect it short or not at all, in silence.
+        /// The hoe's Level ground costs nothing as far as anyone has seen, but whether any
+        /// flattening entry costs stone is asset data, and Paved road may well; the selection
+        /// line in the log says, with Verbose on.
+        ///
+        /// The same filter as ConsumeResources with no station, and nothing when the entry's
+        /// free-build key is set, because vanilla skips ConsumeResources then.
         /// </summary>
-        private static float Affordable(Player player, Price price, out string limiting)
+        private static int OwnCost(Piece own, string item)
+        {
+            if (own == null || own.m_resources == null) return 0;
+            if (ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(own.FreeBuildKey())) return 0;
+
+            int total = 0;
+
+            foreach (Piece.Requirement req in own.m_resources)
+            {
+                if (req == null || req.m_resItem == null || req.m_upgraderResource) continue;
+                if (req.m_resItem.m_itemData.m_shared.m_name != item) continue;
+
+                int amount = req.GetAmount(0);
+                if (amount > 0) total += amount;
+            }
+
+            return total;
+        }
+
+        /// <summary>
+        /// Cubic metres of fill the player can pay for right now, counting what is already paid
+        /// and leaving what the swing's own entry costs. Infinity when nothing is limiting: a free
+        /// entry, a NoBuildCost world, or the nocost cheat, which vanilla also lets past its
+        /// requirement check.
+        /// </summary>
+        private static float Affordable(Player player, Price price, Piece own, out string limiting)
         {
             limiting = null;
 
@@ -358,7 +450,9 @@ namespace Jafna
             {
                 // CountItems with vanilla's defaults, so an item vanilla's own requirement check
                 // would not count is not counted here either.
-                float have = CreditOf(price.Items[k]) + (pack == null ? 0 : pack.CountItems(price.Items[k]));
+                float have = CreditOf(price.Items[k])
+                             + (pack == null ? 0 : pack.CountItems(price.Items[k]))
+                             - OwnCost(own, price.Items[k]);
                 float covers = Mathf.Max(0f, have) / price.PerCubicMetre[k];
 
                 if (covers < volume)
@@ -394,13 +488,15 @@ namespace Jafna
         /// walked a different set of points, or eased them differently, the fill would lift ground
         /// the swing never touches and be right most of the time.
         ///
-        /// Two limits are respected on the way:
+        /// Three limits are respected on the way:
         ///
         ///  - Vanilla clamps the level delta to eight metres and the finished height to eight
         ///    metres either side of the generated ground. After a fill the smooth delta at a short
         ///    point sits at its one metre clamp, so the fill can bank at most eight minus one minus
         ///    what is already banked. Past that the game throws the height away, and charging for
         ///    it would be charging for nothing.
+        ///  - A point needing less than <see cref="MinLift"/> is skipped, and why is on the
+        ///    constant.
         ///  - A heightmap's last row and column are the same vertices as its neighbour's first, and
         ///    a swing that reaches them reaches the neighbour too. Both raise them, so the seam stays
         ///    closed, but only the neighbour counts them, so the line is not paid for twice.
@@ -454,6 +550,10 @@ namespace Jafna
                     if (headroom <= 0f) continue;
                     if (excess > headroom) excess = headroom;
 
+                    // After the cap, so a point one centimetre short of the eight metre limit
+                    // is skipped too rather than billed for a lift nobody can see.
+                    if (excess < MinLift) continue;
+
                     if (record != null) record.Add(new Lift { Index = n, Metres = excess });
 
                     if (ix < width && iy < width) metres += excess;
@@ -472,8 +572,14 @@ namespace Jafna
         /// height when there is one, otherwise whatever <see cref="Flat.Target"/> says for that
         /// zone. A zone with no compiler yet has never been shaped, so its deltas are all zero and
         /// its target is the crosshair, which is also what the owner will find.
+        ///
+        /// <paramref name="fresh"/> is for the one call per swing that decides the share: it
+        /// brings any heightmap this machine shaped earlier in the frame up to date first, so that
+        /// when this machine also owns the zone it measures the same ground the owner half is
+        /// about to (see <see cref="Freshen(Heightmap, bool)"/>). The readout passes false, since
+        /// a stale frame there costs one frame of a number and a rebuild costs a mesh.
         /// </summary>
-        internal static float Estimate(TerrainOp.Settings settings, Vector3 point, float radius)
+        internal static float Estimate(TerrainOp.Settings settings, Vector3 point, float radius, bool fresh)
         {
             if (settings == null || !Bind()) return 0f;
 
@@ -489,6 +595,8 @@ namespace Jafna
             {
                 Heightmap hmap = Maps[i];
                 if (hmap == null) continue;
+
+                if (fresh) Freshen(hmap, true);
 
                 TerrainComp comp = TerrainComp.FindTerrainCompiler(hmap.transform.position);
 
@@ -518,6 +626,16 @@ namespace Jafna
         private static float _askedAt = float.NegativeInfinity;
 
         /// <summary>
+        /// The frame the last request was made in, and what the swing's own entry costs of each
+        /// priced item. A bill paid in that same frame is being paid inside the swing, before
+        /// vanilla's ConsumeResources, so it leaves the entry's cost in the pack. A bill arriving
+        /// in any later frame came over the network after vanilla had already taken it.
+        /// </summary>
+        private static int _askedFrame = -1;
+
+        private static int[] _reserved = new int[0];
+
+        /// <summary>
         /// The share of this swing's shortfall the pack pays for, from 0 to 1, or -1 when the swing
         /// is not asking for a fill at all.
         ///
@@ -544,13 +662,21 @@ namespace Jafna
 
             Vector3 point = op.transform.position;
 
+            // Inside a dungeon the heightmaps under the swing are the surface above it, because
+            // Heightmap.IsPointInside compares only X and Z. The hoe's Level ground cannot land
+            // there anyway - it is a ground piece and the placement ray finds no terrain indoors,
+            // so the ghost is switched off - but a flattening entry on another tool might, and
+            // the fill would then lift the surface over the entrance by up to eight metres.
+            if (Character.InInterior(point)) return -1f;
+
             Price price = Resolve(player, ScaleAt(point));
             if (price == null) return -1f;
 
-            float need = Estimate(settings, point, radius);
+            float need = Estimate(settings, point, radius, true);
             if (need <= MinVolume) return -1f;
 
-            float affordable = Affordable(player, price, out string limiting);
+            Piece own = player.GetSelectedPiece();
+            float affordable = Affordable(player, price, own, out string limiting);
             float share = affordable >= need ? 1f : Mathf.Clamp01(affordable / need);
 
             if (share < 1f)
@@ -570,8 +696,12 @@ namespace Jafna
 
             if (share <= 0f) return -1f;
 
+            if (_reserved.Length != price.Items.Length) _reserved = new int[price.Items.Length];
+            for (int k = 0; k < price.Items.Length; k++) _reserved[k] = OwnCost(own, price.Items[k]);
+
             _billedAt = price;
             _askedAt = Time.time;
+            _askedFrame = Time.frameCount;
             _plannedShare = share;
             return share;
         }
@@ -651,6 +781,9 @@ namespace Jafna
             Inventory pack = player.GetInventory();
             bool cheat = player.NoCostCheat();
 
+            // Still inside the swing, so vanilla has not yet taken the entry's own price.
+            bool inSwing = Time.frameCount == _askedFrame && _reserved.Length == price.Items.Length;
+
             for (int k = 0; k < price.Items.Length; k++)
             {
                 string item = price.Items[k];
@@ -660,7 +793,8 @@ namespace Jafna
                 if (credit < 0f && pack != null)
                 {
                     int want = Mathf.CeilToInt(-credit - Slack);
-                    taken = Mathf.Min(want, pack.CountItems(item));
+                    int spare = pack.CountItems(item) - (inSwing ? _reserved[k] : 0);
+                    taken = Mathf.Min(want, Mathf.Max(0, spare));
 
                     if (taken > 0)
                     {
@@ -689,6 +823,102 @@ namespace Jafna
 
         // -- The zone owner -----------------------------------------------------------------------
 
+        /// <summary>Whether this op, arriving with this share, is one <see cref="Apply"/> will raise ground for.</summary>
+        internal static bool Wants(TerrainOp.Settings modifier, float share)
+        {
+            return share > 0f && JafnaConfig.AutoRaise.Value && Applies(modifier);
+        }
+
+        // Heightmaps an op on this machine changed the heights of this frame, and the subset of
+        // those a fill raised. Keyed by frame rather than cleared from a LateUpdate of ours,
+        // because the heightmap's own LateUpdate is what makes an entry stale and there is no
+        // ordering between the two to rely on.
+        private static int _frame = -1;
+        private static readonly HashSet<Heightmap> Shaped = new HashSet<Heightmap>();
+        private static readonly HashSet<Heightmap> Filled = new HashSet<Heightmap>();
+
+        private static void Today()
+        {
+            if (_frame == Time.frameCount) return;
+
+            _frame = Time.frameCount;
+            Shaped.Clear();
+            Filled.Clear();
+        }
+
+        /// <summary>
+        /// Notes that an op on this machine changed the heights on this compiler's heightmap.
+        /// Called from a DoOperation postfix for every op, fill or not.
+        ///
+        /// Only level, raise and smooth ops count. A paint-only op, and the paint that spreads
+        /// into a neighbouring zone when a swing reaches the edge of its own, pokes a heightmap
+        /// for a rebuild without moving a single height, and treating those as stale was what
+        /// made the first version rebuild the next zone's collision and render meshes twice on
+        /// every fill swing that crossed a zone line.
+        /// </summary>
+        internal static void Touched(TerrainComp comp, TerrainOp.Settings modifier)
+        {
+            if (comp == null || modifier == null) return;
+            if (!modifier.m_level && !modifier.m_raise && !modifier.m_smooth) return;
+            if (!JafnaConfig.AutoRaise.Value) return;
+
+            Heightmap hmap = Heightmap.FindHeightmap(comp.transform.position);
+            if (hmap == null) return;
+
+            Today();
+            Shaped.Add(hmap);
+        }
+
+        /// <summary>
+        /// Brings a compiler's heightmap up to date before an op reads it, when that matters.
+        /// Called from the DoOperation prefix for every op, before anything reads a height.
+        /// </summary>
+        internal static void Freshen(TerrainComp comp, bool filling)
+        {
+            Today();
+            if (Filled.Count == 0 && (!filling || Shaped.Count == 0)) return;
+            if (comp == null) return;
+
+            Freshen(Heightmap.FindHeightmap(comp.transform.position), filling);
+        }
+
+        /// <summary>
+        /// Rebuilds a heightmap now rather than at LateUpdate, in exactly two cases.
+        ///
+        /// An op reads heights off the heightmap, and DoOperation only asks for a rebuild at the
+        /// end of the frame, so a second op on the same heightmap in the same frame reads the
+        /// ground as it was before the first. Vanilla lives with that between its own ops. A fill
+        /// moves ground by up to eight metres in one op where the hoe's flattening moves it by
+        /// one, so the same overlap costs far more after a fill, and:
+        ///
+        ///  - A fill about to measure (<paramref name="filling"/>) rebuilds first if any op has
+        ///    moved heights here this frame. Otherwise two fills landing together - somebody's
+        ///    swings arriving in one packet - would each raise the same ground.
+        ///  - Any op at all rebuilds first if a fill landed here this frame. Otherwise, say, a
+        ///    level op arriving in the same frame would set its points relative to the unfilled
+        ///    ground and leave the whole fill stacked on top of the height it aimed for.
+        ///
+        /// Vanilla op after vanilla op is left exactly as vanilla has it. It is the rebuild the
+        /// heightmap's LateUpdate was going to do anyway, only sooner, and <c>Regenerate</c>
+        /// clears the pending flag so it is not done twice unless something pokes it again. When
+        /// nothing is pending the heights are already current - a zone synced from another
+        /// machine rebuilds on the spot - and nothing is done.
+        /// </summary>
+        private static void Freshen(Heightmap hmap, bool filling)
+        {
+            if (hmap == null) return;
+
+            Today();
+            if (!Filled.Contains(hmap) && !(filling && Shaped.Contains(hmap))) return;
+
+            Shaped.Remove(hmap);
+            Filled.Remove(hmap);
+
+            if (hmap.m_doLateUpdate == 0) return;
+
+            hmap.Regenerate();
+        }
+
         /// <summary>
         /// Raises the given share of what this smooth cannot reach on this zone, and sends the bill.
         /// Runs on the client that owns the zone, from the DoOperation prefix, before vanilla's
@@ -700,16 +930,19 @@ namespace Jafna
         /// the swing, since the heightmap is not rebuilt until the frame's LateUpdate, which is
         /// exactly why the two amounts add up rather than overlap.
         ///
-        /// That same delay is the one trap here. Two ops landing on one heightmap in one frame -
-        /// which happens when somebody else's swings arrive together over the network - would have
-        /// the second measure ground the first already raised and raise it again. A pending rebuild
-        /// is therefore done first. It is the rebuild LateUpdate was about to do anyway, only sooner.
+        /// That same delay is the one trap here, and <see cref="Freshen(Heightmap, bool)"/> is
+        /// where it is handled. By the time this runs the DoOperation prefix has already called
+        /// it, before the height was chosen; it is called again here only so this method stays
+        /// correct if it is ever reached another way.
         /// </summary>
         internal static void Apply(TerrainComp comp, Vector3 centre, TerrainOp.Settings modifier, float share, long sender)
         {
-            if (share <= 0f) return;
-            if (!JafnaConfig.AutoRaise.Value || !Applies(modifier)) return;
+            if (!Wants(modifier, share)) return;
             if (comp == null || !Bind()) return;
+
+            // The owner's half of the interior test in Plan. The owner decides what is raised, so
+            // it does not rely on every swinger having asked the question.
+            if (Character.InInterior(centre)) return;
 
             Heightmap hmap = Heightmap.FindHeightmap(comp.transform.position);
             if (hmap == null) return;
@@ -719,7 +952,7 @@ namespace Jafna
             float[] smooth = _smoothDelta(comp);
             if (modified == null || level == null || smooth == null) return;
 
-            if (hmap.m_doLateUpdate != 0) hmap.Regenerate();
+            Freshen(hmap, true);
 
             Lifts.Clear();
             float need = Measure(hmap, level, smooth, centre, modifier.m_smoothRadius, modifier.m_smoothPower, Lifts);
@@ -734,6 +967,9 @@ namespace Jafna
                 level[n] = Mathf.Clamp(level[n] + Lifts[i].Metres * f, -levelClamp, levelClamp);
                 modified[n] = true;
             }
+
+            Today();
+            Filled.Add(hmap);
 
             float used = need * f;
 
@@ -770,33 +1006,42 @@ namespace Jafna
         /// <summary>
         /// What a swing here would cost, for the build panel. <paramref name="cost"/> is what the
         /// whole fill takes out of the pack in whole items, after what is already paid;
-        /// <paramref name="carried"/> is what the pack holds, filled only when it is short.
+        /// <paramref name="carried"/> is what the pack holds, filled only when it is short, and
+        /// <paramref name="own"/> what the entry itself takes of the same items, filled only when
+        /// that is short too and is not nothing.
         ///
         /// Whole items, because that is what a player watches leave the pack. A fraction on screen
         /// would disagree with the pack on every swing and be right only on average.
         /// </summary>
         internal static Terms Quote(
-            Player player, TerrainOp.Settings settings, Vector3 point, float radius, out string cost, out string carried)
+            Player player, TerrainOp.Settings settings, Vector3 point, float radius,
+            out string cost, out string carried, out string own)
         {
             cost = null;
             carried = null;
+            own = null;
 
             if (!JafnaConfig.AutoRaise.Value || player == null || !Applies(settings)) return Terms.None;
+
+            // Plan's interior test, so the panel never prices a swing that would not be filled.
+            if (Character.InInterior(point)) return Terms.None;
 
             Price price = Resolve(player, ScaleAt(point));
             if (price == null) return Terms.None;
 
-            float need = Estimate(settings, point, radius);
+            float need = Estimate(settings, point, radius, false);
             if (need <= MinVolume) return Terms.None;
 
             if (price.IsFree()) return Terms.Free;
 
             Ledger(player);
             Inventory pack = player.GetInventory();
+            Piece selected = player.GetSelectedPiece();
 
             bool anything = false;
             cost = "";
             carried = "";
+            own = "";
 
             for (int k = 0; k < price.Items.Length; k++)
             {
@@ -806,11 +1051,14 @@ namespace Jafna
 
                 cost += (k > 0 ? ", " : "") + whole + " " + item;
                 carried += (k > 0 ? ", " : "") + (pack == null ? 0 : pack.CountItems(item)) + " " + item;
+
+                int entry = OwnCost(selected, item);
+                if (entry > 0) own += (own.Length > 0 ? ", " : "") + entry + " " + item;
             }
 
             // The cheat lifts the limit and still takes what is carried, so it is never short but
             // is still quoted.
-            float affordable = Affordable(player, price, out string _);
+            float affordable = Affordable(player, price, selected, out string _);
             if (affordable < need) return Terms.Short;
 
             return anything ? Terms.Paid : Terms.Covered;

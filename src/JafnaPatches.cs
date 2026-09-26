@@ -17,6 +17,8 @@ namespace Jafna
     ///   4. TerrainComp.DoOperation
     ///                            - same machine. Applies the radius, decides the height, and
     ///                              raises what the smooth cannot reach. Sends the bill back.
+    ///                              A postfix on the same method notes which heightmap moved,
+    ///                              so a fill later in the frame does not measure stale ground.
     ///   5. Player.UpdatePlacementGhost
     ///                            - every frame, on the swinging client. The ward footprint.
     ///   6. TerrainComp.Awake     - every client, every zone. Listens for that bill, which is
@@ -138,7 +140,8 @@ namespace Jafna
             {
                 line += "Piece groundPiece=" + piece.m_groundPiece
                         + " allowAltGroundPlacement=" + piece.m_allowAltGroundPlacement
-                        + " clipGround=" + piece.m_clipGround + ". ";
+                        + " clipGround=" + piece.m_clipGround
+                        + " costs " + Cost(piece) + ". ";
             }
 
             if (prefab.TryGetComponent(out TerrainModifier mod))
@@ -156,6 +159,28 @@ namespace Jafna
             }
 
             JafnaPlugin.Log.LogInfo(line);
+        }
+
+        /// <summary>
+        /// A piece's own price as a log fragment. Here because whether a flattening entry costs
+        /// stone decides whether the fill has to leave some in the pack for it (Fill.OwnCost),
+        /// and a piece's m_resources is asset data like everything else in this line.
+        /// </summary>
+        private static string Cost(Piece piece)
+        {
+            if (piece.m_resources == null || piece.m_resources.Length == 0) return "nothing";
+
+            string cost = "";
+
+            foreach (Piece.Requirement req in piece.m_resources)
+            {
+                if (req == null || req.m_resItem == null) continue;
+
+                cost += (cost.Length > 0 ? ", " : "") + req.m_resItem.name + " x" + req.GetAmount(0)
+                        + (req.m_upgraderResource ? " (upgrade only)" : "");
+            }
+
+            return cost.Length > 0 ? cost : "nothing";
         }
 
         // -- 1. How far the op reaches ---------------------------------------------------
@@ -210,8 +235,13 @@ namespace Jafna
             bool held = Held.Active;
             if (radius <= Reach.VanillaRadius(modifier.m_settings) && !held && fill <= 0f) return true;
 
+            // Invalid as well as missing hands the call back to vanilla, whose own first line is
+            // the IsValid check with an error message. InvokeRPC dereferences the ZDO, so an
+            // invalid view here would throw out of TerrainOp.Awake and leave the swing's other
+            // zones without their op and the op object in the scene. Before fills this path was
+            // only taken by widened or held swings; now a vanilla-width swing takes it as well.
             ZNetView nview = Reach.View(__instance);
-            if (nview == null) return true;
+            if (nview == null || !nview.IsValid()) return true;
 
             ZPackage pkg = new ZPackage();
             pkg.Write(modifier.transform.position);
@@ -275,9 +305,19 @@ namespace Jafna
         [HarmonyPatch(typeof(TerrainComp), "DoOperation")]
         private static void LevelTo(TerrainComp __instance, ref Vector3 pos, ref TerrainOp.Settings modifier)
         {
-            if (!JafnaConfig.Enabled.Value) return;
+            if (!JafnaConfig.Enabled.Value)
+            {
+                // A fill that landed earlier in this frame still has to be seen by this op, even
+                // with the mod switched off in between.
+                Fill.Freshen(__instance, false);
+                return;
+            }
 
             float incoming = Reach.TakeIncoming(out bool held, out float heldHeight, out float fill, out long sender);
+
+            // First, before anything below reads a height - Flat.Target does, and so does every
+            // vanilla op this prefix lets through. See Fill.Freshen for the two cases it covers.
+            Fill.Freshen(__instance, Fill.Wants(modifier, fill));
 
             if (!Reach.IsFlatten(modifier)) return;
 
@@ -336,6 +376,18 @@ namespace Jafna
             }
         }
 
+        /// <summary>
+        /// Notes which heightmap this op just changed, so a fill later in the same frame knows it
+        /// has to rebuild before it measures. Every op, not only flattening ones: a Raise ground or
+        /// a pickaxe dig that lands first moves heights a fill would otherwise measure stale.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TerrainComp), "DoOperation")]
+        private static void NoteShaped(TerrainComp __instance, TerrainOp.Settings modifier)
+        {
+            Fill.Touched(__instance, modifier);
+        }
+
         // -- 5. The ward footprint, and the readout ---------------------------------------
 
         /// <summary>
@@ -392,7 +444,15 @@ namespace Jafna
                 _placementStatus(__instance) = Player.PlacementStatus.PrivateZone;
             }
 
-            Readout.Update(__instance, settings, point, radius, wardClear);
+            // Whether a swing now would land at all. A ward is only one of the ways it can be
+            // refused. Vanilla marks the ghost invalid for a dozen other reasons, and when the ray
+            // finds no terrain - inside a dungeon, or aimed at a floor - it switches the ghost off
+            // and returns before moving it, so the point read above is wherever the ghost last
+            // was. The price of raising ground is shown only when this is true, so it is never the
+            // price of a swing that cannot happen, quoted at a spot the crosshair has left.
+            bool lands = _placementStatus(__instance) == Player.PlacementStatus.Valid && ghost.activeSelf;
+
+            Readout.Update(__instance, settings, point, radius, wardClear, lands);
         }
 
         /// <summary>
