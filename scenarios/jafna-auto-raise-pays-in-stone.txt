@@ -1,119 +1,234 @@
-# Jafna: a flattening swing raises low ground, and only then takes stone.
+# Jafna: a flattening swing raises low ground for stone, and nothing else costs any.
 #
-# Four claims, one per section:
+# Four claims:
 #
-#   1. Digging costs nothing. A swing aimed below the ground only lowers, and lowering is free.
-#   2. A swing with nothing to raise costs nothing. On ordinary ground a swing aimed at the
-#      ground itself never needs more than the free metre, so no stone moves.
-#   3. NoBuildCost takes no stone. A swing aimed three metres up leaves your ten stone where they
-#      are. This half is all a scenario can check: no step reads the height of the ground, so a
-#      fill that silently did nothing would pass here too. Whether the ground rose is manual
-#      step 3 below.
-#   4. Raising takes stone. The same swing with one stone in the pack needs far more than one
-#      stone's worth, so the one stone is taken. If the fill never happened the stone would
-#      still be there, so this also fails when nothing was raised.
+#   1. Digging is free. A swing that pulls a mound down further than the hoe's one metre takes no
+#      stone.
+#   2. A swing with nothing to raise costs nothing and puts nothing in the middle of the screen.
+#   3. Raising takes stone, and with enough of it the ground comes all the way up to the height the
+#      swing aims at.
+#   4. With no stone the ground comes up the hoe's own metre and stops there, about a metre short,
+#      and the middle of the screen says "Not enough Stone".
 #
-# HOW A SWING IS MADE. A scenario cannot press attack, so `place mud_road_v2` stands in for it:
-# Player.PlacePiece is exactly what the hoe's swing ends in, it instantiates the terrain op and
-# the op's own Awake sends it through Jafna. The `up` argument is what turns it into a test. It
-# puts the op above or below the ground, which is the same thing as your crosshair resting on
-# ground that height away, so the swing aims up or down without anybody holding a height.
+# HOW A SWING AIMS ABOVE THE GROUND. A scenario cannot hold Left Alt and Jafna has no console
+# command for a held height. It does not need either. Without Alt the hoe's Level ground does not
+# aim at the height under the crosshair: Player.UpdatePlacementGhost puts the ghost where the
+# crosshair is but at GetGroundHeight of your own position, and only AltPlace turns that off. So a
+# swing taken standing on a mound two metres high aims two metres above the ground in front of it,
+# and a swing taken from the ground at a mound aims below the mound. `build` presses the place
+# button through the game's own path, so these are real swings with Jafna's patches and the stone
+# in them, and `mark` reads the same ground height the ghost does.
 #
-# `place` looks prefabs up in ZNetScene, and this step will PROBABLY FAIL there. The game finds
-# terrain ops through ObjectDB's own list, and on 20 September a Devkit rip could not find the
-# hoe's entries in ZNetScene or ObjectDB. If `place mud_road_v2` fails with "no prefab", that is
-# Devkit's lookup and not this mod, nothing after it means anything, and the manual steps below
-# are the test. Devkit's `place` needs to fall back to the equipped tool's piece table.
+# The continued flat cannot do this job. It is taken from the shaped points nearest the swing, and
+# Raise ground and every hoe swing leave shaped points at the old height round their edge, so no
+# swing at untouched low ground finds a flat above it.
 #
-# FRESH GROUND EACH TIME. Every swing lands eight metres from the last, so no swing touches
-# ground another one shaped. That matters: Jafna continues a flat it finds under the swing, and
-# a swing on ground an earlier one shaped would take that ground's height instead of the one the
-# scenario aimed at. For the same reason, run it on ground nobody has worked, and walk somewhere
-# new before running it a second time. It leaves a pit and two mounds behind, so not near a base.
+# THE MOUNDS. Two Raise ground on one spot. raise_v2 was read out of the game files: radius 2, lift
+# 1, power 0.1, Stone x2. That leaves a block about three metres square and 1.8 to 2 metres high
+# that drops to the old ground within a metre. Mound B is 3 m ahead of where you start and mound A
+# is 8 m behind you. Swings from a mound are taken standing half a metre off its middle toward the
+# spot, because from the middle, on some headings, the mound's own corner hides a spot three
+# metres out.
 #
-# NO HELD HEIGHT. A held height beats everything, so with Left Alt holding one every swing here
-# would aim at it. The `onscreen HOLDING no` step catches that; press Left Alt and run again.
+# THE ORDER IS SET BY THE CREDIT. Jafna takes stone whole and keeps the rest until you log out, so
+# a second run in the same session can start with most of a stone already paid for. That would
+# cover a small fill and let a build that charges where it should not pass the checks that expect
+# no stone to move. So the first swing is one no leftover can pay for: from mound B, with an empty
+# pack and Crafting at 100 so it covers 12 metres, it wants about 7 cubic metres raised, and one
+# stone buys 4.1 (Raise ground's Stone x2 over the 8.27 cubic metres one Raise ground adds). It
+# runs short whatever was left over, which spends the leftover, and that is claim 4's message.
+# Claims 2 and 1 follow on nothing carried over, then claim 4's height, then claim 3.
 #
-# PART OF A STONE CARRIES OVER within a session. Section 4 relies on the swing costing more
-# than whatever part of a stone an earlier run left behind. It will, unless Raise ground turns
-# out to be very cheap per cubic metre, which the log's "Raising ground is priced off" line
-# says. If section 4 keeps its stone on a second run, log out and in and run it once more.
+# Claim 4's height and claim 3 are on opposite sides of mound A on purpose. A swing that runs out
+# leaves ground a metre up and flat, and the next swing on that spot continues that flat instead of
+# your height, so stone given afterwards raises nothing there.
 #
-# It sets Crafting to 0 so the swing is the hoe's own three metres, and puts it back at the end.
-# It sets NoBuildCost and takes it off again. That key is world state, so if the run is stopped
-# halfway, remove it by hand with `removekey NoBuildCost` in the console.
+# WHAT A BROKEN BUILD READS, per key check:
 #
-# Stand on fairly level ground with about twenty metres clear to your right and left.
+#   - `centre Not enough Stone yes` after the first swing, and again in section 4's second half:
+#     a build that raises without stone, or never raises, says nothing.
+#   - `height 0 3 -0.9 0.38` in section 4: that swing ran out, so the ground stopped at the free
+#     metre, about -0.9. A build that raised it anyway reads -0.45 to 0.
+#   - `centre Not enough no` in section 2, with nothing in the pack: a build that charged for lift
+#     the free metre already covers says "Not enough Stone" here wherever the ground under the
+#     swing dips a few centimetres below your feet, which is most ground. The same check after
+#     section 3's one-stone swing catches it every time.
+#   - `carrying Stone 3` in section 1: a build that priced digging like filling takes one and
+#     reads 2. `height 3 0 1.15 0.4` next to it proves the swing did dig: an untouched mound reads
+#     about 1.9.
+#   - `carrying Stone 0` in section 3: the one stone can only go to the fill. A fill that took no
+#     stone, or never ran, leaves 1.
+#   - `height 0 -2.5 0 0.25` at the end: three paid swings bring the patch to your height. A build
+#     that stopped at the free metre reads about -0.9.
+#   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
+#     If either fails, nothing after it means anything.
 #
-# MANUAL STEPS, for what no step can see. Verbose=true in the cfg first.
+# The geometry was checked against a copy of the game's own terrain arithmetic (RaiseTerrain,
+# SmoothTerrain, the collision mesh's triangles) and Jafna's Flat.Target and fill, over random
+# headings, positions and slopes up to 7 percent. On a correct build every check passed. A build
+# that raises without stone, one that never raises, one that charges for digging and one that
+# charges for the free metre each failed at least one. One thing it could not catch is the
+# three centimetre floor on touch-ups, which is manual step 5. Nothing here has run in a game.
 #
-#   1. Equip the hoe, select Level ground. Expected: one log line "Raising ground is priced off
-#      'raise_v2' ... one swing adds X cubic metres to flat ground for Stone xN".
-#   2. Carry 50 Stone. Stand on something 2-3m above the ground around it, aim at it, press
-#      Left Alt. Walk down and aim at the low ground. Expected: the panel says "Filling up to
-#      that height costs N Stone". Swing once. Expected: the middle of the patch rises to the
-#      held height and about N Stone leave the pack.
-#   3. Type `setkey NoBuildCost` in the console (it needs devcommands), hold a height 3m above
-#      fresh ground and swing. Expected: the middle of the patch reaches the held height and no
-#      stone leaves the pack. `removekey NoBuildCost` afterwards.
-#   4. Keep the held height and fill an area clearly wider than one swing, walking and swinging
-#      until all of it looks flat. Drop every stone you carry. Stand in the middle and swing
-#      twice on the same spot. Expected: before the second swing the panel shows no cost line,
-#      and the second swing puts nothing in the middle of the screen.
-#   5. Hold a height 2m below the ground and swing. Expected: no cost line, no stone taken, and
-#      the ground drops about a metre and stops.
+# NEEDS: singleplayer, English as the game language (the message names the item), and a strip of
+# untouched, fairly level ground with no ward from 12 m ahead of you to 14 m behind, 9 m wide on
+# either side. Not near a base. Eat first: there are eleven swings at 5 stamina each. No held
+# height (the panel must not say HOLDING). Jafna's Reach settings at their defaults, because the
+# first swing relies on MaxRadius 6.
+#
+# It can fail with nothing wrong in three ways. A patch that crosses a zone boundary, where each
+# zone decides the continued flat for itself. A steep slope. And on a slope, a first swing that
+# happens to need less than a stone while a run earlier in the session left nearly a whole one
+# over; then the first message check fails, and the rest of the run is on leftover credit.
+#
+# LEAVES: two mounds, one with its near side dug about a metre, two patches a metre up where the
+# stone ran out, one patch raised to mound height, dirt over all of it. Crafting is put back. Devkit
+# empties the pack and hands back the test kit. Jafna keeps up to a stone of credit until you log
+# out.
+#
+# MANUAL STEPS, for what no step can see. Log out and back in first, which empties what Jafna has
+# carried over and makes step 1's line come again. A mound below is two Raise ground on one spot,
+# as the scenario builds them.
+#
+#   1. Take the hoe out and select Level ground. Expected, once a session, Verbose or not:
+#      "Raising ground is priced off 'raise_v2' ... raise radius 2,00, delta 1,00, power 0,10,
+#      square False, so one swing adds 8,27 cubic metres to flat ground for Stone x2. That is
+#      0,242 $item_stone per cubic metre."
+#   2. Stand on a fresh mound with 10 Stone and aim at untouched ground 2 to 3 m out. Expected: a
+#      panel line "Filling up to that height costs N Stone", N at least 1. Drop the stone.
+#      Expected: "You carry 0 Stone, filling all of it costs N Stone".
+#   3. Carry 20 Stone. From low ground, aim at the top of a mound and press Left Alt. Walk to
+#      untouched low ground and swing once. Expected: the middle of the patch comes up to the held
+#      height and Stone leaves the pack. Press Left Alt again to let go.
+#   4. Type `setkey NoBuildCost` in the console (it needs devcommands), stand on a fresh mound with
+#      10 Stone and swing at untouched ground 2 to 3 m out. Expected: before the swing the panel
+#      says "Filling up to that height is free in this world", the middle comes up to the mound's
+#      height, and all 10 Stone are still there. `removekey NoBuildCost` afterwards.
+#   5. Stand where section 3 stood (on mound A, half a metre to its left) with 20 Stone and keep
+#      swinging at the patch it raised until the panel shows no cost line before a swing. Drop
+#      every stone and swing twice more. Expected: neither swing puts anything in the middle of
+#      the screen, and there is still no cost line.
+
+
+# ---- setting up
 
 clear
-give Hoe:1,Stone:10
-god
+give Hoe:1,Stone:4
 skill Crafting 0
-
 tool Hoe mud_road_v2
 wait 1
 
-# Jafna's lines are in the build panel, and nothing is being held.
+# Jafna's lines are in the build panel, nothing is being held, and the reach is the hoe's own
+# three metres, which sections 1, 2 and 3 are measured at.
 onscreen Flattens yes
 onscreen HOLDING no
+onscreen adds nothing yet yes
+
+# The centre message stays in its text after it fades, so an old "Not enough" from earlier play
+# would answer the first check below. This reads and clears it and cannot fail.
+centre (clearing the message line) no
 
 
-# ---- 1. digging is free: aimed two metres down, straight ahead.
+# ---- mound B, 3 m ahead
 
-place mud_road_v2 3 0 0 -2
+mark
+build raise_v2 3 0
 wait 1
-carrying Stone 10
-
-
-# ---- 2. nothing to raise is free: aimed at the ground itself, eight metres left.
-
-place mud_road_v2 3 -8 0 0
-wait 1
-carrying Stone 10
-
-
-# ---- 3. a NoBuildCost world takes no stone: aimed three metres up, eight metres right.
-
-key NoBuildCost
-wait 1
-place mud_road_v2 3 8 0 3
-wait 1
-carrying Stone 10
-unkey NoBuildCost
-wait 1
-
-
-# ---- 4. raising takes stone: the same swing with one stone, sixteen metres left.
-
-# A fresh pack rather than taking nine away, because there is no step that removes part of a
-# stack. The hoe goes with it, so it is given back and taken out again.
-clear
-give Hoe:1,Stone:1
-tool Hoe mud_road_v2
-wait 1
-
-place mud_road_v2 3 -16 0 3
+build raise_v2 3 0
 wait 1
 carrying Stone 0
+height 3 0 1.9 0.4
+
+
+# ---- 4, first half: no stone, from mound B, 12 m wide, so it cannot be paid for
+
+wait 2
+move 3.5 0
+skill Crafting 100
+wait 1
+onscreen up from the hoe's own yes
+
+build mud_road_v2 2.5 0
+wait 1
+centre Not enough Stone yes
+skill Crafting 0
+
+
+# ---- 2: nothing to raise, from the ground where you started, 3.5 m to the right
+
+wait 2
+move -3.5 0
+build mud_road_v2 0 3.5
+wait 1
+centre Not enough no
+
+
+# ---- 1: digging is free, at mound B's near side
+
+give Stone:3
+build mud_road_v2 1.5 0
+wait 1
+carrying Stone 3
+centre Not enough no
+height 3 0 1.15 0.4
+
+
+# ---- mound A, 8 m behind where you started
+
+wait 2
+move -11 0
+clear
+give Hoe:1,Stone:4
+tool Hoe mud_road_v2
+wait 1
+mark
+build raise_v2 3 0
+wait 1
+build raise_v2 3 0
+wait 1
+carrying Stone 0
+height 3 0 1.9 0.4
+
+
+# ---- 4, second half: no stone, measured, from mound A's right side
+#
+# Nothing is carried over any more, so the swing raises nothing past the hoe's metre. 12 m wide
+# again, because then the metre it does raise is flat round the spot, and a fill would have left
+# a dish there, so the two cannot read alike at the measured point half a metre further out.
+
+wait 2
+move 3 0.5
+mark
+skill Crafting 100
+build mud_road_v2 0 2.5
+wait 1
+centre Not enough Stone yes
+height 0 3 -0.9 0.38
+skill Crafting 0
+
+
+# ---- 3: raising takes stone and reaches your height, from mound A's left side
+#
+# One stone first. This swing needs well under a stone's worth and more than nothing, so it is
+# never short and always takes exactly that stone. Then five more and two swings on the same
+# spot, because one swing only lands its middle on your height and eases the ground round it.
+
+wait 2
+move 0 -1
+mark
+give Stone:1
+build mud_road_v2 0 -2.5
+wait 1
+carrying Stone 0
+centre Not enough no
+
+give Stone:5
+build mud_road_v2 0 -2.5
+wait 1
+build mud_road_v2 0 -2.5
+wait 1
+centre Not enough no
+height 0 -2.5 0 0.25
 
 
 skill Crafting back
-clear
