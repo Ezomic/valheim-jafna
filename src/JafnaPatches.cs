@@ -16,7 +16,7 @@ namespace Jafna
     ///                              else. Receives the radius.
     ///   4. TerrainComp.DoOperation
     ///                            - same machine. Applies the radius, decides the height, and
-    ///                              raises what the smooth cannot reach. Sends the bill back.
+    ///                              on a paid swing lifts the circle onto it. Sends the bill back.
     ///                              A postfix on the same method notes which heightmap moved,
     ///                              so a fill later in the frame does not measure stale ground.
     ///   5. Player.UpdatePlacementGhost

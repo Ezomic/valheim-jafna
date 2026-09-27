@@ -163,8 +163,8 @@ namespace Jafna
         /// and it is accepted: this swing's price moves least, because a short swing spends about
         /// everything you carry, so the price of the whole patch, which moves with every step of
         /// the aim, is the one that goes last. When even the middle is more than the pack pays for,
-        /// the line says the swing fills nothing, since that swing raises nothing past the hoe's
-        /// free metre and takes nothing.
+        /// the line says the swing fills nothing, since that swing is left to the hoe's own easing
+        /// and takes nothing.
         ///
         /// When the entry itself costs some of the same item, the short lines say so after what
         /// you carry. That stone is taken by vanilla after the swing and the fill leaves it alone,

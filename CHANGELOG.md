@@ -11,22 +11,29 @@ game and written to the log once. Alternating Raise ground and Level ground by h
 be cheaper, because every Raise ground gives Level ground its free metre back and a fill does
 not.
 
-Only the part the flattening could not have done is charged. The first metre at each point stays
-free and a swing with nothing to raise costs nothing. A point a swing would lift by less than
-three centimetres is left alone, so going over flat ground does not cost stone. Stone comes out
-whole and the remainder carries over to the next swing until you log out. NoBuildCost makes it
-free, and nocost behaves the way it does for vanilla's Raise ground. It is on by default as
-`AutoRaise`, and the host decides it on a server.
+A paid swing lifts its whole circle to your height at once, and leaves a step at the edge of the
+circle until you swing next to it. That shape was picked over letting the stone follow the hoe's
+easing, which would finish only the middle of a swing and creep outward over the next few: the
+flat top is faster, and the step is its price. It also costs more per swing, because the edge of
+the circle, which the hoe barely moves, is paid for nearly all the way. Over ground two metres
+low that is about 10 Stone a swing at the hoe's own reach and nearly 40 at 12 metres across.
 
-Each point comes up as far as the swing takes it or not at all, and you pay only for what came
-up. The hoe eases ground toward the height rather than setting it, so one swing lands its middle
-on your height and brings the ground round it part of the way, paid for, and the next swing
-carries on from there. Short of stone, a swing raises the middle of the patch first and works
-outward as far as the stone goes, and says so. The ground it did not reach gets the hoe's free
-metre and nothing else. The game never lets ground sit more than eight metres above where the
-world made it, so ground further below the height than that is left alone too, rather than raised
-partway and charged for a height it can never reach. The build panel says so before the swing,
-and the swing says "Too far below to raise".
+Only the part the flattening could not have done is charged. Every point keeps the free movement
+the hoe's own swing gives it, a metre at most, and you pay for the rest of the way. A swing the hoe
+can finish on its own, which is any swing that never runs into its metre, is left exactly as
+vanilla has it and costs nothing, so the flat top comes with paying and ordinary flattening is
+untouched. A point a swing would lift by less than three centimetres is left to the hoe, so going
+over flat ground does not cost stone. Stone comes out whole and the remainder carries over to the
+next swing until you log out. NoBuildCost makes it free, and nocost behaves the way it does for
+vanilla's Raise ground. It is on by default as `AutoRaise`, and the host decides it on a server.
+
+Each point comes all the way up or not at all, and you pay only for what came up. Short of stone,
+a swing lifts the middle of the circle first and works outward as far as the stone goes, and says
+so. The ground it did not reach gets the hoe's own easing and nothing else, so a short swing leaves
+a flat patch in its middle with a step round it. The game never lets ground sit more than eight
+metres above where the world made it, so ground further below the height than that is left alone
+too, rather than raised partway and charged for a height it can never reach. The build panel says
+so before the swing, and the swing says "Too far below to raise".
 
 The build panel says what a swing will cost before you take it, and that is what it takes. Short
 of stone it says what you carry, what this swing fills and takes for it, and what all of it would
@@ -40,9 +47,9 @@ reaches rides at the end of the message Jafna already appends, where 1.0.0 stops
 Lowering has not changed. Ground well above the target still stops after about a metre, or two
 where it was raised before.
 
-Not run in a game yet. The price Raise ground resolves to, the fill itself, the middle-first
-rule when stone runs short, the eight metre rule, the panel lines and messages for both, and the
-bill between two machines are all untested.
+Not run in a game yet. The price Raise ground resolves to, the flat top and the step at its edge,
+the middle-first rule when stone runs short, the eight metre rule, the panel lines and messages for
+both, and the bill between two machines are all untested.
 
 ## 1.0.0 - 20 September 2026
 
