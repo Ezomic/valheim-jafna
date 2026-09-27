@@ -12,20 +12,23 @@ be cheaper, because every Raise ground gives Level ground its free metre back an
 not.
 
 A paid swing lifts its whole circle to your height at once, and leaves a step at the edge of the
-circle until you swing next to it. That shape was picked over letting the stone follow the hoe's
-easing, which would finish only the middle of a swing and creep outward over the next few: the
-flat top is faster, and the step is its price. It also costs more per swing, because the edge of
-the circle, which the hoe barely moves, is paid for nearly all the way. Over ground two metres
-low that is about 10 Stone a swing at the hoe's own reach and nearly 40 at 12 metres across.
+circle until the next swing beside it that needs stone. A step under a metre is eased away by
+ordinary swings instead. That shape was picked over letting the stone follow the hoe's easing,
+which would finish only the middle of a swing and creep outward over the next few: the flat top is
+faster, and the step is its price. A paid swing takes more stone than one that followed the easing,
+because it does the work of several at once, but the ground costs the same in the end. Over ground
+two metres low that is about 7 Stone a swing at the hoe's own reach and about 27 at 12 metres
+across.
 
-Only the part the flattening could not have done is charged. Every point keeps the free movement
-the hoe's own swing gives it, a metre at most, and you pay for the rest of the way. A swing the hoe
-can finish on its own, which is any swing that never runs into its metre, is left exactly as
-vanilla has it and costs nothing, so the flat top comes with paying and ordinary flattening is
-untouched. A point a swing would lift by less than three centimetres is left to the hoe, so going
-over flat ground does not cost stone. Stone comes out whole and the remainder carries over to the
-next swing until you log out. NoBuildCost makes it free, and nocost behaves the way it does for
-vanilla's Raise ground. It is on by default as `AutoRaise`, and the host decides it on a server.
+Only the part the hoe could never do is charged. Every point comes up the metre the hoe would have
+given it for free, less what earlier swings used of it, and you pay for the rest of the way. A swing
+where every point is within that metre of your height is one the hoe can finish on its own, and it
+is left exactly as vanilla has it and costs nothing, so the flat top comes with paying and ordinary
+flattening is untouched. A point less than three centimetres past its free metre is not charged
+for, so going over flat ground does not cost stone. Stone comes out whole and the remainder carries
+over to the next swing until you log out. NoBuildCost makes it free, and nocost behaves the way it
+does for vanilla's Raise ground. It is on by default as `AutoRaise`, and the host decides it on a
+server.
 
 Each point comes all the way up or not at all, and you pay only for what came up. Short of stone,
 a swing lifts the middle of the circle first and works outward as far as the stone goes, and says

@@ -28,12 +28,14 @@ namespace Jafna
     /// cost divided by that volume, per item. Both halves are asset data, which is why neither is
     /// written down here and why the resolved price is logged once a session.
     ///
-    /// Whether a swing needs stone at all is the hoe's question, not ours. It does when the hoe's
-    /// own swing would run into its one metre clamp at a point it is allowed to raise, which is
-    /// exactly the ground the ceiling above stops short. A swing that does not is left to vanilla
-    /// untouched, easing and all, and costs nothing, however far below the height its edge sits:
-    /// the hoe has always left the edge of a swing short, and charging for that would turn every
-    /// flattening swing into a paid one. The flat top below is a property of paying, not a new hoe.
+    /// Whether a swing needs stone is a question about each point under it: is the height further
+    /// above that point than the hoe could ever bring it for free? The free part is the point's
+    /// room, the metre less whatever earlier swings have used of it. A swing where every point is
+    /// within its room of the height needs no stone, because the hoe's own swings would get all of
+    /// it there, a few more of them toward the edge, and it is left to vanilla untouched, easing
+    /// and all, and costs nothing. A swing with a point further below than that needs stone,
+    /// because that point cannot reach the height any other way. The flat top below is a property
+    /// of paying, not a new hoe.
     ///
     /// A swing that needs stone lifts its whole circle to the height at once. On 2026-09-27 Robbin
     /// picked this from three side views, as "Flat top, hard edge": "One paid swing lifts its whole
@@ -44,24 +46,34 @@ namespace Jafna
     /// for what the clamp cut off, so one swing finished only its middle and it took several more
     /// to bring the ground round it up. Now every point inside the circle that is below the height
     /// ends on it, and a point above it is eased down by the hoe for free as it always was. The
-    /// cost of that is the rim: a point near the edge, which the hoe barely moves, is now paid for
-    /// nearly all the way, so a paid swing takes many times the stone the eased one did. The
-    /// step at the edge is as tall as the ground was short there, and the next paid swing beside
-    /// it continues the flat and takes it away.
+    /// step at the edge is as tall as the ground was low there. The next swing beside it that
+    /// needs stone continues the flat and takes it away. A step of less than a metre is within the
+    /// hoe's free reach, so an ordinary swing beside it eases it into the hoe's usual slope instead.
     ///
-    /// Only what the hoe would not have done for free is charged, and that is where the two arrays
+    /// Each point is charged only for the part past its room, and that is where the two arrays
     /// matter. The fill runs before SmoothTerrain, which then reads the heights as they stood
-    /// before the swing, because the heightmap is only rebuilt in its LateUpdate, and moves each
-    /// point by its eased amount through <c>m_smoothDelta</c>, clamped to a metre. The fill never
-    /// writes that array. It works out what the smooth is about to leave in it and sets
-    /// <c>m_levelDelta</c> so that the two add up to the height (see <see cref="Measure"/>). So
-    /// every point still gets exactly the free movement a vanilla swing would have given it, uses
-    /// up exactly the same share of its one metre, and everything past that is billed: nothing
-    /// reaches the level delta that was not paid for. The alternative matters more than it looks.
-    /// Vanilla's raise op folds the smooth delta into the level delta and so hands the next
-    /// smoothing swing a fresh free metre. Doing that here would make every swing's first metre
-    /// free again, and flattening a hole a metre at a time would cost nothing, which is the free
-    /// Raise ground this exists not to be.
+    /// before the swing, because the heightmap is only rebuilt in its LateUpdate, eases each point,
+    /// adds that to <c>m_smoothDelta</c> and clamps the sum to a metre. So the fill writes a lifted
+    /// point's smooth delta as what the point should end on less the amount the smooth is about to
+    /// add, and the smooth's own addition lands it there: the free part of the lift goes through the
+    /// one array vanilla counts free movement in, against the same one metre clamp. The paid part
+    /// goes into <c>m_levelDelta</c>, and the finished height is the ground plus both (see
+    /// <see cref="Measure"/>). So nothing reaches the level delta that was not paid for, and what a
+    /// point is given free is only its own unused metre, which the hoe would have given it anyway.
+    /// The alternative matters more than it looks. Vanilla's raise op folds the smooth delta into
+    /// the level delta and so hands the next smoothing swing a fresh free metre. Doing that here
+    /// would make every swing's first metre free again, and flattening a hole a metre at a time
+    /// would cost nothing, which is the free Raise ground this exists not to be.
+    ///
+    /// The first flat top, the same day, charged more than that, and review caught it. It left the
+    /// smooth delta to the smooth, so a point got free only what this one eased swing moved it and
+    /// paid for all the rest: the edge of the circle, which the hoe barely moves, was paid for
+    /// nearly all the way up while most of its metre sat unused. It also asked the hoe's clamp
+    /// rather than the room whether a swing needed stone, so the price jumped at the clamp. Over
+    /// fresh flat ground, 1.02 metres low was a free vanilla swing and 1.04 metres low cost 4.9
+    /// Stone at the hoe's own reach, of which 0.3 was past the free metre. Now that ground costs
+    /// the 0.3, and any ground costs what the eased fill charged to finish it over however many
+    /// swings that took, only all at once.
     ///
     /// A point comes all the way up or not at all. Also on 2026-09-27, before the flat top, Robbin
     /// asked: "if it can't raise a part to the level that is set to flatten, it doesnt raise that
@@ -102,8 +114,8 @@ namespace Jafna
     ///    row of vertices both of them draw. How far a vertex is from the middle is a fact both
     ///    zones agree on. For the same reason the owner does not ask again whether the swing
     ///    needs stone. A distance above zero is the swinger's answer for the whole swing, and a
-    ///    zone asking for itself could find nothing clamped in its own half, ease that half the
-    ///    hoe's way and flat top the other, with a step running down the zone line.
+    ///    zone asking for itself could find no point past its room in its own half, ease that
+    ///    half the hoe's way and flat top the other, with a step running down the zone line.
     ///  - The owner then tells the swinger what it actually raised, and the swinger pays for that.
     ///    Paying after rather than before is what keeps a mixed server honest in the right
     ///    direction: an owner without this mod never reads the distance, raises nothing and sends
@@ -134,33 +146,33 @@ namespace Jafna
         internal const string BillRpc = "Jafna_FillBill";
 
         /// <summary>
-        /// Clamped shortfalls adding up to less than this are rounding, and a swing with no more
-        /// than this does not need stone, in cubic metres. Ten litres. Without a floor a swing on
-        /// ground that is already flat can find a few millimetres of float noise at one rim point,
-        /// become a paid swing and take a whole stone for it.
+        /// Paid lifts adding up to less than this are rounding, and a swing with no more than this
+        /// does not need stone, in cubic metres. Ten litres. Without a floor a swing on ground that
+        /// is already flat can find a few millimetres of float noise at one rim point, become a paid
+        /// swing and take a whole stone for it.
         /// </summary>
         private const float MinVolume = 0.01f;
 
         /// <summary>
-        /// The smallest paid lift one point is given, in metres, and the smallest clamped shortfall
-        /// at one point that counts toward a swing needing stone. A point that would be lifted less
-        /// than this is left to the hoe and not charged for.
+        /// The smallest paid lift one point is given, in metres, and the smallest one that counts
+        /// toward a swing needing stone. A point whose way up is past its free room by less than
+        /// this is not paid for: in a paid swing it comes up its room and stops that little short.
         ///
         /// MinVolume alone was not enough, and the reason is ground that is nearly finished. The
         /// hoe's free room at a point is used up by every swing that moves it, filled or not, so on
-        /// worked ground most points have little or none left and any upward centimetre there is a
-        /// shortfall the clamp cuts off. Worked through on paper in review (not yet seen in a game),
-        /// a touch-up pass over a finished terrace finds a few millimetres at dozens of points,
-        /// which sums to several times MinVolume. Without this floor that touch-up would be a paid
-        /// swing, and since a paid swing lifts its whole circle, it would charge for every point
-        /// under it that sits a hair low: each swing takes part of a stone, the panel flips between
-        /// a price and "already paid for", and with an empty pack every swing over your own flat
-        /// yard says you are out of stone. Ground hoed before this version carries used-up room
-        /// too, so it is not only filled ground.
+        /// worked ground most points have little or none left and any upward centimetre there is
+        /// past it. Worked through on paper in review (not yet seen in a game), a touch-up pass over
+        /// a finished terrace finds a few millimetres at dozens of points, which sums to several
+        /// times MinVolume. Without this floor that touch-up would be a paid swing, and since a
+        /// paid swing lifts its whole circle, it would charge for every point under it that sits a
+        /// hair low: each swing takes part of a stone, the panel flips between a price and "already
+        /// paid for", and with an empty pack every swing over your own flat yard says you are out
+        /// of stone. Ground hoed before this version carries used-up room too, so it is not only
+        /// filled ground.
         ///
         /// Per point rather than per swing, because the complaint is per point: a dip you cannot
-        /// see is not worth stone however many of them one swing covers. Leaving it to the hoe
-        /// rather than raising it free is what stops the floor becoming a free raise in small
+        /// see is not worth stone however many of them one swing covers. Not raising that part at
+        /// all, rather than raising it free, is what stops the floor becoming a free raise in small
         /// steps. Three centimetres is under what the terrain mesh shows as a bump, and a point
         /// short by more than that is lifted by the next paid swing that covers it.
         /// </summary>
@@ -223,16 +235,21 @@ namespace Jafna
         }
 
         /// <summary>
-        /// Whether this op is one a fill applies to: a smooth that is not also a level.
+        /// Whether this op is one a fill applies to: a smooth that is neither a level nor a raise.
         ///
         /// A level op has no ceiling to fill. <c>LevelTerrain</c> sets each point to its target
         /// outright and banks it into the level delta, so it already reaches any height up to
         /// vanilla's eight metre limit, and charging for it would be charging for something the
         /// game gives away.
+        ///
+        /// A raise op runs before the smooth in the same operation and folds every smooth delta it
+        /// touches into the level delta, the smooth delta the fill has just written included. That
+        /// would bank a filled point's free part and hand it a fresh metre, and land it off the
+        /// height besides. No hoe entry is both, so nothing is lost by leaving such an op alone.
         /// </summary>
         internal static bool Applies(TerrainOp.Settings settings)
         {
-            return settings != null && settings.m_smooth && !settings.m_level;
+            return settings != null && settings.m_smooth && !settings.m_level && !settings.m_raise;
         }
 
         // -- The price -------------------------------------------------------------------------
@@ -546,13 +563,24 @@ namespace Jafna
         // -- Measuring ---------------------------------------------------------------------------
 
         /// <summary>
-        /// One point a paid swing lifts onto the height, by how many metres past what the hoe
-        /// moves it for free, and where it stands.
+        /// One point a paid swing lifts onto the height: how many metres of that are paid, what its
+        /// smooth delta is set to for the free part, and where it stands.
         /// </summary>
         private struct Lift
         {
             public int Index;
+
+            /// <summary>
+            /// Metres added to the level delta and billed. Zero for a point whose room covers the
+            /// whole way up.
+            /// </summary>
             public float Metres;
+
+            /// <summary>
+            /// What the fill writes into the smooth delta: the value the point should end on less
+            /// the eased amount SmoothTerrain is about to add to it (see <see cref="Measure"/>).
+            /// </summary>
+            public float Smooth;
 
             /// <summary>
             /// Metres from the middle of the swing, grid point to grid point the way the smooth
@@ -575,50 +603,53 @@ namespace Jafna
         private static readonly Comparison<Lift> Nearer = (a, b) => a.Distance.CompareTo(b.Distance);
 
         /// <summary>
-        /// Cubic metres a paid swing centred on <paramref name="centre"/> lifts onto the height, on
-        /// one heightmap. <paramref name="clamped"/> gets the part of that which the hoe's own swing
-        /// wants and its one metre clamp cuts off, which is what decides whether a swing needs
+        /// Cubic metres a paid swing centred on <paramref name="centre"/> charges for, on one
+        /// heightmap: the part of each point's way up to the height that is past its free room.
+        /// More than <see cref="MinVolume"/> of it across the whole swing is what makes a swing need
         /// stone at all (see the class comment). Records each point it would lift when
         /// <paramref name="record"/> is given.
         ///
         /// Deliberately <c>SmoothTerrain</c>'s own arithmetic, point for point: the same footprint
         /// (always round, whatever <c>m_square</c> says), the same falloff with the same fast path
-        /// for a power of three, the same Lerp toward the same target, and the same clamp on the
-        /// sum. That is how the fill knows what the smooth, running after it, will leave in
-        /// <c>m_smoothDelta</c> at each point, called settled here, and so what
-        /// <c>m_levelDelta</c> must hold for the two to land the point on the height. The finished
-        /// height is the ground plus both deltas (<c>ApplyToHeightmap</c>), so the level delta
-        /// wanted is the height less the ground less the settled smooth delta, and the lift billed
-        /// is that less what is banked there already. The free part is then whatever the smooth
-        /// moves the point by, which is vanilla's own number by construction. If this walked a
-        /// different set of points, or eased them differently, the fill would lift ground the swing
-        /// never touches, or land the points it does touch off the height by the difference.
+        /// for a power of three, and the same Lerp toward the same target. That is how the fill
+        /// knows what the smooth, running after it, is about to add to <c>m_smoothDelta</c> at each
+        /// point, called eased here. If this walked a different set of points, or eased them
+        /// differently, the fill would write smooth deltas the smooth never adds to, or land the
+        /// points it does touch off the height by the difference.
+        ///
+        /// Per point, in the game's terms. The ground is the height less both deltas, their sum
+        /// clamped to eight metres the way <c>ApplyToHeightmap</c> clamps it, and the finished
+        /// height is that ground plus both deltas again. The point's room is the metre less its
+        /// smooth delta, and its free part is the whole way up or its room, whichever is less, so
+        /// the smooth delta should end on the old one plus the free part: settled here. The fill
+        /// writes it as settled less eased, and SmoothTerrain's own add puts it back on settled,
+        /// which its clamp to a metre never cuts because settled is inside it by construction. The
+        /// level delta takes the rest of the way, so that the ground plus both deltas is the height,
+        /// and what it takes is the lift that is billed. So the free part is exactly the room a
+        /// vanilla swing uses up, counted where vanilla counts it, and the paid part is exactly what
+        /// reaches the level delta.
         ///
         /// A point at or above the height is left alone: the hoe eases it down for free, and a flat
         /// top is only ever built upward.
         ///
         /// Three limits are respected on the way:
         ///
-        ///  - Vanilla clamps the finished height to eight metres either side of the ground the
-        ///    heights are kept against, and the level delta to eight metres. That ground is the
-        ///    height less both deltas, their sum clamped to eight metres the way
-        ///    <c>ApplyToHeightmap</c> clamps it. A point whose level is further above that ground
-        ///    than eight metres can never be brought to it, by any number of swings or any amount
-        ///    of stone, so it is not lifted at all: not raised, not charged, and not in the price
-        ///    the panel quotes. Nor is a point whose level would need more than eight metres in the
-        ///    level delta, which only happens where the hoe dug before and the smooth delta is still
-        ///    below zero after this swing. The first version filled such points as far as the limit
-        ///    and charged for that, which is the half-raised, paid-for ground Robbin's rule in the
-        ///    class comment is against. <see cref="MinLift"/> of slack, so a level a centimetre past
-        ///    the limit is still filled to it rather than left a metre short. Every point left out
-        ///    this way is counted in <paramref name="beyond"/>, because leaving it out in silence
-        ///    was the bug this whole feature exists to fix: the panel shows a height and the ground
-        ///    stops short of it with nothing on screen to say why. Plan says so in the middle of the
-        ///    screen and the panel says so under the price. Only points that would otherwise have
-        ///    been lifted count, which is why the <see cref="MinLift"/> test comes first.
-        ///  - A point needing less than <see cref="MinLift"/> is left to the hoe, and a clamped
-        ///    shortfall smaller than it does not count toward the swing needing stone. Why is on
-        ///    the constant.
+        ///  - Vanilla clamps the finished height to eight metres either side of the ground. A point
+        ///    whose level is further above its ground than that can never be brought to it, by any
+        ///    number of swings or any amount of stone, so it is not lifted at all: not raised, not
+        ///    charged, not in the price the panel quotes, and left to the hoe's own easing. The first
+        ///    version filled such points as far as the limit and charged for that, which is the
+        ///    half-raised, paid-for ground Robbin's rule in the class comment is against.
+        ///    <see cref="MinLift"/> of slack, so a level a centimetre past the limit is still filled
+        ///    to it rather than left a metre short. Every point left out this way that would have
+        ///    been paid for is counted in <paramref name="beyond"/>, because leaving it out in
+        ///    silence was the bug this whole feature exists to fix: the panel shows a height and the
+        ///    ground stops short of it with nothing on screen to say why. Plan says so in the middle
+        ///    of the screen and the panel says so under the price. The level delta cannot pass its
+        ///    own eight metre clamp inside that limit, because a point that is paid for at all ends
+        ///    with its smooth delta on the full metre.
+        ///  - A paid lift smaller than <see cref="MinLift"/> is not paid for and does not count
+        ///    toward the swing needing stone. Why is on the constant.
         ///  - A heightmap's last row and column are the same vertices as its neighbour's first, and
         ///    a swing that reaches them reaches the neighbour too. Both lift them, from the same
         ///    numbers, so the seam stays closed, but only the neighbour counts them, so the line is
@@ -626,7 +657,7 @@ namespace Jafna
         /// </summary>
         private static float Measure(
             Heightmap hmap, float[] level, float[] smooth, Vector3 centre, float radius, float power,
-            List<Lift> record, ref int beyond, ref float clamped)
+            List<Lift> record, ref int beyond)
         {
             if (hmap == null || radius <= 0f) return 0f;
 
@@ -657,46 +688,45 @@ namespace Jafna
                     float height = hmap.GetHeight(ix, iy);
                     if (height >= target) continue;
 
-                    float u = d / reach;
-                    u = power != 3f ? Mathf.Pow(u, power) : u * u * u;
-
                     int n = iy * pitch + ix;
                     float smoothed = smooth != null && n < smooth.Length ? smooth[n] : 0f;
                     float levelled = level != null && n < level.Length ? level[n] : 0f;
 
-                    // What the smooth is about to do here, in its own order: ease toward the
-                    // target, add that to the smooth delta, clamp the sum to a metre. What the
-                    // clamp throws away is the part of the hoe's own swing it cannot do.
-                    float eased = Mathf.Lerp(height, target, 1f - u) - height;
-                    float settled = Mathf.Clamp(smoothed + eased, -smoothClamp, smoothClamp);
-                    float cut = smoothed + eased - settled;
-
                     float ground = height - Mathf.Clamp(levelled + smoothed, -levelClamp, levelClamp);
                     float top = Mathf.Min(target, ground + levelClamp);
-                    float banked = top - ground - settled;
-                    float lift = banked - levelled;
-                    if (lift < MinLift) continue;
 
-                    if (target - ground > levelClamp + MinLift || banked > levelClamp + MinLift)
+                    float room = Mathf.Max(0f, smoothClamp - smoothed);
+                    float settled = smoothed + Mathf.Clamp(top - height, 0f, room);
+                    float lift = top - ground - settled - levelled;
+
+                    if (target - ground > levelClamp + MinLift)
                     {
-                        beyond++;
+                        if (lift >= MinLift) beyond++;
                         continue;
                     }
 
-                    // Inside the slack the level lands on the limit rather than a hair past it.
-                    // After the cap, so a point one centimetre short of the eight metre limit is
-                    // skipped too rather than billed for a lift nobody can see.
-                    if (banked > levelClamp) lift = levelClamp - levelled;
-                    if (lift < MinLift) continue;
+                    // Under the floor the point is not paid for, and comes up on its room alone.
+                    if (lift < MinLift) lift = 0f;
+
+                    // What SmoothTerrain is about to add here, in its own order: ease toward the
+                    // target from the height it reads, which in this frame is still the old one.
+                    float u = d / reach;
+                    u = power != 3f ? Mathf.Pow(u, power) : u * u * u;
+                    float eased = Mathf.Lerp(height, target, 1f - u) - height;
 
                     bool counted = ix < width && iy < width;
                     float paid = counted ? lift * scale * scale : 0f;
 
-                    if (counted && cut >= MinLift) clamped += Mathf.Min(cut, lift) * scale * scale;
-
                     if (record != null)
                     {
-                        record.Add(new Lift { Index = n, Metres = lift, Distance = d * scale, Volume = paid });
+                        record.Add(new Lift
+                        {
+                            Index = n,
+                            Metres = lift,
+                            Smooth = settled - eased,
+                            Distance = d * scale,
+                            Volume = paid
+                        });
                     }
 
                     volume += paid;
@@ -707,9 +737,8 @@ namespace Jafna
         }
 
         /// <summary>
-        /// Cubic metres a paid flattening swing here would lift onto the height, read from this
-        /// client's copy of the ground, and in <paramref name="clamped"/> how much of it the hoe's
-        /// clamp cuts off, which says whether the swing is a paid one at all (see
+        /// Cubic metres a paid flattening swing here would charge for, read from this client's
+        /// copy of the ground, which also says whether the swing is a paid one at all (see
         /// <see cref="Measure"/>). Used for the readout every frame and once per swing to decide
         /// how much of the fill the pack pays for.
         ///
@@ -730,10 +759,9 @@ namespace Jafna
         /// </summary>
         private static float Estimate(
             TerrainOp.Settings settings, Vector3 point, float radius, bool fresh, List<Lift> record,
-            out int beyond, out float clamped)
+            out int beyond)
         {
             beyond = 0;
-            clamped = 0f;
             if (settings == null || !Bind()) return 0f;
 
             Vector3 probe = point + Vector3.up * settings.m_levelOffset;
@@ -763,7 +791,7 @@ namespace Jafna
 
                 need += Measure(
                     hmap, level, smooth, new Vector3(probe.x, target, probe.z), radius, settings.m_smoothPower, record,
-                    ref beyond, ref clamped);
+                    ref beyond);
             }
 
             return need;
@@ -834,11 +862,11 @@ namespace Jafna
             if (price == null) return -1f;
 
             Planned.Clear();
-            float need = Estimate(settings, point, radius, true, Planned, out int beyond, out float clamped);
+            float need = Estimate(settings, point, radius, true, Planned, out int beyond);
 
-            // Whether the swing needs stone is decided on what the hoe's clamp cuts off, and what
-            // it costs on the whole flat top. A swing the hoe can do alone stays vanilla.
-            if (clamped <= MinVolume)
+            // A swing with every point within its room of the height is one the hoe can finish
+            // alone, and it stays vanilla.
+            if (need <= MinVolume)
             {
                 if (beyond > 0) player.Message(MessageHud.MessageType.Center, "Too far below to raise");
                 return -1f;
@@ -1159,12 +1187,14 @@ namespace Jafna
         /// the ground, so the bill is for what was raised here rather than what the swinger
         /// expected.
         ///
-        /// Before, because the smooth then does its own part on top: this banks into the level
-        /// delta whatever the smooth's own move will not cover, the smooth adds its eased amount
-        /// to the smooth delta and clamps it, and together they put each point on the height. Both
-        /// read the heights as they stood before the swing, since the heightmap is not rebuilt
-        /// until the frame's LateUpdate, which is exactly why the two amounts add up rather than
-        /// overlap, and why Measure can know the smooth's part before the smooth has run.
+        /// Before, because the smooth then does its own part on top. This writes each lifted
+        /// point's smooth delta short of where it should end by exactly the eased amount the smooth
+        /// is about to add, and banks the paid part into the level delta, and the smooth's add then
+        /// puts the point on the height (see <see cref="Measure"/>). Both read the heights as they
+        /// stood before the swing, since the heightmap is not rebuilt until the frame's LateUpdate,
+        /// which is why Measure can know the smooth's part before the smooth has run. Nothing
+        /// between this and the smooth may rebuild the heightmap, or the smooth would ease from the
+        /// new heights and land every filled point off the height; nothing in DoOperation does.
         ///
         /// That same delay is the one trap here, and <see cref="Freshen(Heightmap, bool)"/> is
         /// where it is handled. By the time this runs the DoOperation prefix has already called
@@ -1194,10 +1224,8 @@ namespace Jafna
             // The swinger has already said whether any of it is too far below, and whether the
             // swing needs stone; the owner only leaves the too-far points out.
             int beyond = 0;
-            float clamped = 0f;
             float need = Measure(
-                hmap, level, smooth, centre, modifier.m_smoothRadius, modifier.m_smoothPower, Lifts, ref beyond,
-                ref clamped);
+                hmap, level, smooth, centre, modifier.m_smoothRadius, modifier.m_smoothPower, Lifts, ref beyond);
             if (Lifts.Count == 0) return;
 
             float levelClamp = Heightmap.c_LevelMaxDelta;
@@ -1210,6 +1238,7 @@ namespace Jafna
 
                 int n = Lifts[i].Index;
                 level[n] = Mathf.Clamp(level[n] + Lifts[i].Metres, -levelClamp, levelClamp);
+                smooth[n] = Lifts[i].Smooth;
                 modified[n] = true;
 
                 used += Lifts[i].Volume;
@@ -1224,9 +1253,9 @@ namespace Jafna
             if (JafnaConfig.Verbose.Value)
             {
                 JafnaPlugin.Log.LogInfo(
-                    "Filled " + used.ToString("0.00") + " of " + need.ToString("0.00") + " cubic metres at "
-                    + centre.y.ToString("0.00") + "m, " + raised + " of " + Lifts.Count + " points, asked for "
-                    + Describe(reach) + ", billing peer " + sender + ".");
+                    "Filled " + raised + " of " + Lifts.Count + " low points to " + centre.y.ToString("0.00")
+                    + "m, paying for " + used.ToString("0.00") + " of " + need.ToString("0.00")
+                    + " cubic metres, asked for " + Describe(reach) + ", billing peer " + sender + ".");
             }
 
             if (used <= 0f) return;
@@ -1301,12 +1330,12 @@ namespace Jafna
             if (price == null) return Terms.None;
 
             Quoted.Clear();
-            float need = Estimate(settings, point, radius, false, Quoted, out int beyond, out float clamped);
+            float need = Estimate(settings, point, radius, false, Quoted, out int beyond);
             far = beyond > 0;
 
             // Plan's test for a swing that needs stone, so the panel is silent over exactly the
             // swings the hoe does alone, and prices the flat top over the rest.
-            if (clamped <= MinVolume) return Terms.None;
+            if (need <= MinVolume) return Terms.None;
 
             if (price.IsFree()) return Terms.Free;
 

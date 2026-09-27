@@ -89,26 +89,31 @@ raising ground clears the total again. So a swing aimed well above the ground us
 up a metre and then do nothing, however often you swung, while the panel kept showing a height
 the ground never reached.
 
-Now a swing that runs into that metre lifts its whole circle straight to your height, and you pay
-for it in stone. Hold 34m while standing on 32m and swing, and all the ground inside the swing
-that is below 34m ends at 34m, in that one swing, with the stone taken from your pack. Ground
-above your height is eased down by the hoe for free, as it always was.
+Now a swing over ground further below your height than the hoe's metre can reach lifts its whole
+circle straight to your height, and you pay for it in stone. Hold 34m while standing on 32m and
+swing, and all the ground inside the swing that is below 34m ends at 34m, in that one swing, with
+the stone taken from your pack. Ground above your height is eased down by the hoe for free, as it
+always was.
 
-That leaves a step at the edge of the circle, as tall as the ground was low there, and it stays
-until your next swing beside it continues the flat and takes it away. That is the trade, and it
-was chosen on purpose. The hoe eases ground toward your height rather than setting it: fully at
-the middle of a swing, less further out, and not at all at its edge. The other way to spend the
-stone was to follow that easing, finishing only the middle in one swing and creeping outward
-over the next few. Lifting the whole circle at once is faster, and the step is the price of it.
+That leaves a step at the edge of the circle, as tall as the ground was low there. Your next swing
+beside it that needs stone continues the flat and takes the step away. A step of less than a metre
+is within what the hoe does for free, so an ordinary swing beside it eases it into the hoe's usual
+slope instead. That is the trade, and it was chosen on purpose. The hoe eases ground toward your
+height rather than setting it: fully at the middle of a swing, less further out, and not at all at
+its edge. The other way to spend the stone was to follow that easing, finishing only the middle in
+one swing and creeping outward over the next few. Lifting the whole circle at once is faster, and
+the step is the price of it.
 
-It also costs more per swing than following the easing did, because the edge of the circle, which
-the hoe barely moves, is now paid for nearly all the way. Over ground two metres below your
-height, a swing at the hoe's own reach takes about 10 Stone, and one 12 metres across nearly 40.
+A paid swing takes more stone than one that followed the easing, because it does at once what that
+took several swings to do, but the ground costs the same in the end. Every point comes up its free
+metre first and you pay for the rest of the way, however many swings it takes to get there. Over
+ground two metres below your height, a swing at the hoe's own reach takes about 7 Stone, and one 12
+metres across about 27.
 
-A swing that does not run into the metre is left exactly as the hoe does it, easing and all, and
-costs nothing, however short its edge falls. The hoe has always left the edge of a swing short,
-and charging for that would make every flattening swing cost stone. The flat top comes with paying,
-not with the hoe.
+A swing where the hoe's free metre is enough for every point in it is left exactly as the hoe does
+it, easing and all, and costs nothing. The hoe gets all of that ground there on its own over a few
+swings, and charging for it would make ordinary flattening cost stone. The flat top comes with
+paying, not with the hoe.
 
 A point is left out of the fill in two cases, and then it gets only the hoe's own free, eased
 movement and costs nothing. The game never lets ground sit more than eight metres above where the
@@ -132,13 +137,13 @@ by hand. Alternating Raise ground and Level ground by hand can still beat it. Ev
 gives the next Level ground swing its free metre back, and a fill does not. If it did, every
 swing would get a free metre and flattening would raise ground for nothing.
 
-Only the part the hoe could not have done is charged. Every point still gets the free movement
-the hoe's own swing would have given it, a metre at most as it always was, and you pay for the
-rest of the way. A point the swing would lift by less than three centimetres is left to the hoe
-and costs nothing, so going over ground that is already flat does not eat stone. Stone leaves
-your pack whole. When a swing needs part of a stone, a whole one is taken and the rest is kept
-toward your next swing until you log out. If the entry you swing costs stone of its own, the fill
-leaves that much in your pack for it.
+Only the part the hoe could never do is charged. Every point gets the metre the hoe would have
+given it for free, less whatever earlier swings already used of it, and you pay for the rest of
+the way. A point less than three centimetres past its free metre is not raised past it and costs
+nothing, so going over ground that is already flat does not eat stone. Stone leaves your pack
+whole. When a swing needs part of a stone, a whole one is taken and the rest is kept toward your
+next swing until you log out. If the entry you swing costs stone of its own, the fill leaves that
+much in your pack for it.
 
 When you run short, the swing spends your stone on the middle of the circle first and works
 outward, lifting each point all the way to your height, until the stone runs out. The ground
@@ -151,7 +156,7 @@ point up by the same fraction of what it needed and left not even the middle at 
 The build panel shows what a swing will cost before you take it, and that is what the swing
 takes. When you carry enough it is the price of the whole circle. When you do not, it says what
 you carry, what this swing will fill and take for it, and what all of it would cost:
-`You carry 1 Stone, this swing fills the middle for 1 Stone, all of it costs 10 Stone`. When you
+`You carry 1 Stone, this swing fills the middle for 1 Stone, all of it costs 7 Stone`. When you
 cannot pay for even the middle, it says the swing fills none of it, and that swing takes nothing.
 
 A world with NoBuildCost set raises for free. The nocost command lifts the limit but still takes
@@ -269,12 +274,12 @@ That matters for what this mod can promise. `SmoothTerrain` eases each point tow
 by `1 - (distance/radius)^power` and clamps its own accumulated movement to one metre per
 point, and only a level or raise operation ever banks that into the permanent height and frees
 the budget again. So flattening with the hoe is asymptotic by design and capped near a metre per
-point. Jafna leaves the easing alone on every swing the cap does not stop. It changes the height
-all those swings are easing toward, so they converge on one answer instead of following your
-crosshair. Going up, a swing the cap does stop is finished for stone: at every point of the circle
-below the height, the rest of the way goes into the same permanent height Raise ground writes to.
-The swing's own eased movement is left where vanilla keeps it, so a swing never gets a fresh free
-metre out of being filled.
+point. Jafna leaves the easing alone on every swing the cap would not stop short. It changes the
+height all those swings are easing toward, so they converge on one answer instead of following
+your crosshair. Going up, a swing over ground the cap would stop short is finished for stone:
+every point of the circle below the height comes up what is left of its free metre, counted where
+vanilla counts it, and the rest of the way goes into the same permanent height Raise ground writes
+to. So a swing never gets a fresh free metre out of being filled.
 
 **The hoe's piece table names no skill.** Using it raises nothing, and `Player.GetBuildStamina`
 skips its discount branch, so unlike the hammer there is no second reward hiding behind the
@@ -290,9 +295,9 @@ any of it with a second player.
 
 Raising low ground for stone has not been in a game at all yet. That covers the price Raise
 ground resolves to, a paid swing's whole circle landing on the height with a step at its edge,
-the stone it takes, the middle coming up first when the stone runs short and the panel's price
-for it, ground past the eight metre limit being left alone and said so, and the bill travelling
-between two machines.
+the stone it takes and each point's free metre coming off the bill, the middle coming up first
+when the stone runs short and the panel's price for it, ground past the eight metre limit being
+left alone and said so, and the bill travelling between two machines.
 
 ## Bugs and ideas
 

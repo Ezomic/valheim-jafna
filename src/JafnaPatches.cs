@@ -358,8 +358,9 @@ namespace Jafna
             }
 
             // Once the height is settled and before vanilla's smooth runs, because the fill is
-            // measured against the height this swing is actually aiming at, and the smooth then
-            // adds its own free part on top of it. Does nothing unless the swinger asked and paid.
+            // measured against the height this swing is actually aiming at, and the smooth's own
+            // eased add is what lands each filled point on it. Does nothing unless the swinger asked
+            // and paid.
             Fill.Apply(__instance, pos + Vector3.up * offset, modifier, fill, sender);
 
             if (JafnaConfig.Verbose.Value)
