@@ -39,8 +39,8 @@ still start a new platform at a new height: stand clear of the old one and swing
   swing flattens toward it wherever you stand, until you press again.
 - **Low ground is raised with stone.** When a swing wants the ground higher than the hoe can
   lift it, the rest is raised anyway and paid for from your pack, at the rate the hoe's own
-  Raise ground charges. Ground comes up all the way or not at all, and you pay only for what
-  came up.
+  Raise ground charges. Each point comes up as far as the swing takes it or not at all, and you
+  pay only for what came up.
 - **Reach grows with Crafting.** Nothing below about Crafting 25, growing to a 6 metre radius
   at Crafting 60 against the hoe's own 3. Never a discount: a swing costs exactly the stamina
   vanilla charges.
@@ -67,10 +67,11 @@ The panel says `HOLDING height, press LeftAlt to release` for as long as it last
 is deliberate: the single mistake this feature can cause is forgetting it is on, and a line
 that tells you how to stop cannot be read as decoration.
 
-Hold a height above the ground and the swing raises it all the way, for stone, as long as the
-height is within eight metres of where the world made the ground. The next section has the price. Hold one more than about a metre below the ground and the ground still stops
-short: hold 32m, stand on 34m, and it comes down to about 33m and no further. The hoe only digs
-a metre, or two on ground it raised before, and digging is the pickaxe's job.
+Hold a height above the ground and swinging raises it all the way, for stone, as long as the
+height is within eight metres of where the world made the ground. The next section has the
+price. Hold one more than about a metre below the ground and the ground still stops short: hold
+32m, stand on 34m, and it comes down to about 33m and no further. The hoe only digs a metre, or
+two on ground it raised before, and digging is the pickaxe's job.
 
 A held height is not kept across a logout. Coming back, swinging, and watching the ground move
 toward a number you set yesterday for a reason you no longer remember - with nothing on screen
@@ -88,16 +89,24 @@ raising ground clears the total again. So a swing aimed well above the ground us
 up a metre and then do nothing, however often you swung, while the panel kept showing a height
 the ground never reached.
 
-Now the rest is raised and you pay for it in stone. Hold 34m while standing on 32m and the
-swing brings the ground all the way up, taking stone from your pack as it goes.
+Now the rest is raised and you pay for it in stone. Hold 34m while standing on 32m and swing, and
+the ground keeps coming up past the hoe's metre until it reaches 34m, taking stone from your pack
+as it goes.
 
-Every point comes up all the way or not at all. A point the swing cannot bring to your height is
-left where the hoe's own free metre puts it, and it costs nothing. Half-raised ground is the worst
-of both: the stone is gone, the height is not there, and you have to raise it again anyway. So
-a point is left alone in two cases. The game never lets ground sit more than eight metres above
-where the world made it, so ground further below your height than that cannot ever get there,
-however much stone you carry. And when your stone runs out partway, the ground it did not reach
-stays where it is, which is covered further down.
+Each point comes up as far as the swing takes it, or not at all. The hoe eases ground toward your
+height rather than setting it: fully at the middle of the swing, less further out, and not at all
+at its edge. So one swing brings only its middle all the way to your height. Ground halfway out
+comes half the way, you pay for the part of that the free metre did not cover, and the next swing
+over it carries on from there. That stone is not wasted, because the ground it paid for stays up,
+but after a single swing the edge of the patch is still short of your height and already paid
+for. More swings over and around it bring the rest up, the way flattening with the hoe has
+always crept toward its height.
+
+A point is left out of the fill in two cases, and then it gets only the hoe's own free metre and
+costs nothing. The game never lets ground sit more than eight metres above where the world made
+it, so ground further below your height than that cannot ever get there, however much stone you
+carry. And when your stone runs out partway, the ground it did not reach stays where the free
+metre puts it, which is covered further down.
 
 The price is the hoe's own. Jafna finds the Raise ground entry on the hoe, takes what it costs,
 and works out how much ground one Raise ground swing adds to flat ground. Filling costs stone at
@@ -117,13 +126,13 @@ stone, a whole one is taken and the rest is kept toward your next swing until yo
 the entry you swing costs stone of its own, the fill leaves that much in your pack for it.
 
 When you run short, the swing spends your stone on the middle of the patch first and works
-outward, raising each point all the way, until the stone runs out. The ground further out gets
-only the hoe's free metre and costs nothing, and the middle of the screen says you ran out. The
-middle comes first because that is where you aimed and where the swing pulls hardest toward
-your height, and a patch that grows out from it leaves one clean edge to carry on from. The first
-version spread the stone evenly instead, which brought the whole patch up part of the way and
-left none of it at the height. The build panel shows what a swing will cost before you take it,
-and what you carry when that is not enough.
+outward, raising each point as far as a paid swing would, until the stone runs out. The ground
+further out gets only the hoe's free metre and costs nothing, and the middle of the screen says
+you ran out. The middle comes first because that is where you aimed and where the swing pulls
+hardest toward your height, and a patch that grows out from it leaves one clean edge to carry on
+from. The first version spread the stone evenly instead, which brought every point up by the
+same fraction of what it needed and left not even the middle at your height. The build panel
+shows what a swing will cost before you take it, and what you carry when that is not enough.
 
 A world with NoBuildCost set raises for free. The nocost command lifts the limit but still takes
 any stone you carry, which is what vanilla's Raise ground does as well.

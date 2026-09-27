@@ -55,7 +55,8 @@
 #   - `centre Not enough Stone yes` after the first swing, and again in section 4's second half:
 #     a build that raises without stone, or never raises, says nothing.
 #   - `height 0 3 -0.9 0.38` in section 4: that swing ran out, so the ground stopped at the free
-#     metre, about -0.9. A build that raised it anyway reads -0.45 to 0.
+#     metre, about -0.9. A build that raised it anyway reads -0.45 to 0. So does a correct build
+#     run twice in one session, which is what NEEDS is for.
 #   - `centre Not enough no` in section 2, with nothing in the pack: a build that charged for lift
 #     the free metre already covers says "Not enough Stone" here wherever the ground under the
 #     swing dips a few centimetres below your feet, which is most ground. The same check after
@@ -129,7 +130,11 @@
 #      patch two or three metres across in the middle of the swing comes up to within a few tenths
 #      of the mound's height. The ground round it comes up about a metre and stops, so there is a
 #      ledge at the patch's edge. A build that spreads the stone evenly leaves no ledge: the whole
-#      patch comes up part of the way and none of it reaches the mound's height.
+#      patch comes up part of the way and none of it reaches the mound's height. One stone and not
+#      two: the whole swing wants about 7 cubic metres and two stones buy 8.3, so with two it is
+#      usually not short at all. On level ground one covers the middle and the four points round
+#      it, about 3.2 of the 4.1 cubic metres it buys, and stops at the diagonals, which need 1.8
+#      more.
 #   7. Find a drop of more than nine metres onto flat ground nobody has shaped, a cliff or the side
 #      of a tall rock. Press Left Alt with the crosshair on the top, go down, carry 20 Stone, and
 #      swing at the flat ground at least six metres out from the foot of the drop. Expected: no
@@ -222,6 +227,12 @@ height 3 0 1.9 0.4
 # Nothing is carried over any more, so the swing raises nothing past the hoe's metre. 12 m wide
 # again, because then the metre it does raise is flat round the spot, and a fill would have left
 # a dish there, so the two cannot read alike at the measured point half a metre further out.
+#
+# Half a metre out is also exactly where a leftover credit lands, and it stays there anyway.
+# Further out, beyond what less than a stone can pay for, a fill barely shows either: the hoe eases
+# with power 1, so 2.5 m from the middle a build that raises without stone reads about -0.8,
+# inside this check. Run through the copy of the game's arithmetic, `height 0 5` let a build that
+# raises without stone and bills nothing pass all 300 runs; this check fails it in all 300.
 
 wait 2
 move 3 0.5

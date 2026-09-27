@@ -18,12 +18,14 @@ whole and the remainder carries over to the next swing until you log out. NoBuil
 free, and nocost behaves the way it does for vanilla's Raise ground. It is on by default as
 `AutoRaise`, and the host decides it on a server.
 
-Ground comes up all the way or not at all, and you pay only for what came up. Short of stone, a
-swing raises the middle of the patch first and works outward as far as the stone goes, and says
-so. The ground it did not reach gets the hoe's free metre and nothing else. The game never lets
-ground sit more than eight metres above where the world made it, so ground further below the
-height than that is left alone too, rather than raised partway and charged for a height it can
-never reach.
+Each point comes up as far as the swing takes it or not at all, and you pay only for what came
+up. The hoe eases ground toward the height rather than setting it, so one swing lands its middle
+on your height and brings the ground round it part of the way, paid for, and the next swing
+carries on from there. Short of stone, a swing raises the middle of the patch first and works
+outward as far as the stone goes, and says so. The ground it did not reach gets the hoe's free
+metre and nothing else. The game never lets ground sit more than eight metres above where the
+world made it, so ground further below the height than that is left alone too, rather than raised
+partway and charged for a height it can never reach.
 
 The build panel says what a swing will cost before you take it, and what you carry when that is
 not enough.

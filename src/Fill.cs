@@ -36,17 +36,28 @@ namespace Jafna
     /// make every swing's first metre free again, and flattening a hole a metre at a time would
     /// cost nothing, which is the free Raise ground this exists not to be.
     ///
-    /// A point is raised all the way or not at all. On 2026-09-27 Robbin asked for exactly that:
+    /// A point is raised as far as the swing takes it, or not at all. On 2026-09-27 Robbin asked:
     /// "if it can't raise a part to the level that is set to flatten, it doesnt raise that part up
     /// and doesnt use stone for that part". The first version did the opposite in both of the
     /// places a fill can fall short. Short of stone, it raised every point by the same fraction of
     /// what that point needed, so the whole patch came up part of the way, the stone was gone and
-    /// nothing was at the height. And at vanilla's eight metre limit it raised a point as far as
-    /// the limit and charged for it, although no swing could ever take that point the rest of the
-    /// way. Now the stone is spent from the middle of the swing outward, each point it reaches
-    /// raised in full, and a point whose level the game will never allow is left out whatever the
-    /// pack holds (see <see cref="Measure"/>). A point left out still gets the hoe's own free metre,
-    /// because that is the hoe without this mod, and it costs nothing.
+    /// not even the middle was at the height. And at vanilla's eight metre limit it raised a point
+    /// as far as the limit and charged for it, although no swing could ever take that point the
+    /// rest of the way. Now the stone is spent from the middle of the swing outward, each point it
+    /// reaches given its whole shortfall, and a point whose level the game will never allow is left
+    /// out whatever the pack holds (see <see cref="Measure"/>). A point left out still gets the
+    /// hoe's own free metre, because that is the hoe without this mod, and it costs nothing.
+    ///
+    /// "As far as the swing takes it" is not "all the way to the level", and the gap between the
+    /// two is the hoe's. SmoothTerrain eases each point toward the target by <c>1 - (d/r)^power</c>
+    /// rather than setting it, and the hoe's Level ground has power 1, so one swing lands only its
+    /// middle on the height: a point halfway out comes half the way, and the fill pays for the part
+    /// of that the one metre clamp cut off. That ground stays up and the next swing carries on from
+    /// it, so the stone is not wasted, but after one swing the rim of a paid patch is short of the
+    /// height and paid for. The strictest reading of the rule, filling only points one swing lands
+    /// on the height, would fill a single vertex per swing. The other reading, bringing the whole
+    /// circle to the height at once, overrides the hoe's easing and leaves a step as tall as the
+    /// shortfall at the edge of every swing. Neither is what this does.
     ///
     /// The middle first because the middle is where the player aimed, it is the ground a swing
     /// pulls hardest toward the height, and a patch that grows outward from it leaves one clean
@@ -60,11 +71,12 @@ namespace Jafna
     ///    which is the same data the owner holds, works out how far from the middle of the swing
     ///    its stone reaches, and sends that distance behind the reach in the package Reach.cs
     ///    already appends.
-    ///  - The client that owns the zone raises every short point inside that distance, in full,
-    ///    from what it measures itself. A distance rather than a volume so that a swing across a
-    ///    zone line stops at the same place on both sides of it: two zones each handed a volume
-    ///    would each spend it from their own half, and the line between them is a row of vertices
-    ///    both of them draw. How far a vertex is from the middle is a fact both zones agree on.
+    ///  - The client that owns the zone gives every short point inside that distance its whole
+    ///    shortfall, from what it measures itself. A distance rather than a volume so that a
+    ///    swing across a zone line stops at the same place on both sides of it: two zones each
+    ///    handed a volume would each spend it from their own half, and the line between them is a
+    ///    row of vertices both of them draw. How far a vertex is from the middle is a fact both
+    ///    zones agree on.
     ///  - The owner then tells the swinger what it actually raised, and the swinger pays for that.
     ///    Paying after rather than before is what keeps a mixed server honest in the right
     ///    direction: an owner without this mod never reads the distance, raises nothing and sends
@@ -708,10 +720,10 @@ namespace Jafna
 
         /// <summary>
         /// How far from the middle of this swing the pack pays to raise the ground, in metres:
-        /// every short point nearer than this is raised in full and every one further out is left
-        /// to the smooth. <see cref="Everywhere"/> when the pack pays for all of it, and -1 when the
-        /// swing is not asking for a fill at all, including when the pack cannot pay for even the
-        /// middle.
+        /// every short point nearer than this is given its whole shortfall and every one further
+        /// out is left to the smooth. <see cref="Everywhere"/> when the pack pays for all of it, and
+        /// -1 when the swing is not asking for a fill at all, including when the pack cannot pay for
+        /// even the middle.
         ///
         /// Decided once per swing and then handed to every zone the swing reaches, because
         /// ApplyOperation is called once per zone and the distance has to be the same in all of
@@ -782,7 +794,7 @@ namespace Jafna
         }
 
         /// <summary>
-        /// How far from the middle every short point can be raised in full on
+        /// How far from the middle every short point can be given its whole shortfall on
         /// <paramref name="affordable"/> cubic metres, or 0 when not even the middle can.
         ///
         /// A ring at a time. Points the same distance from the middle go in together or not at
@@ -1046,13 +1058,15 @@ namespace Jafna
         }
 
         /// <summary>
-        /// Raises every point on this zone the smooth cannot reach, in full, that lies nearer the
-        /// middle than <paramref name="reach"/> metres, and sends the bill. Runs on the client that
-        /// owns the zone, from the DoOperation prefix, before vanilla's SmoothTerrain.
+        /// Raises every point on this zone that lies nearer the middle than <paramref name="reach"/>
+        /// metres by the whole of what the smooth wants to move it and its clamp cuts off, and sends
+        /// the bill. Runs on the client that owns the zone, from the DoOperation prefix, before
+        /// vanilla's SmoothTerrain.
         ///
-        /// Each point all the way or not at all, which is Robbin's rule in the class comment. The
-        /// reach is the swinger's, and the points are this machine's own measure of the ground, so
-        /// the bill is for what was raised here rather than what the swinger expected.
+        /// Each point by its whole shortfall or not at all, which is Robbin's rule as the class
+        /// comment reads it. The reach is the swinger's, and the points are this machine's own
+        /// measure of the ground, so the bill is for what was raised here rather than what the
+        /// swinger expected.
         ///
         /// Before, because the smooth then does its own part on top: this banks the shortfall into
         /// the level delta, the smooth adds whatever room its clamp has left, and together they put
