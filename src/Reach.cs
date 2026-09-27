@@ -212,11 +212,12 @@ namespace Jafna
         // -- The wire ------------------------------------------------------------------
 
         /// <summary>
-        /// Writes the mod's four fields and then the fill share. The share goes last and is read
-        /// only when it is there, because the first four are what Jafna 1.0.0 wrote and still
-        /// reads: an owner on that version finds its magic, reads its thirteen bytes, never looks
-        /// further, and applies the swing without raising anything or sending a bill. The swing
-        /// then costs nothing, which is the right way to fail for a price nobody collected.
+        /// Writes the mod's four fields and then the fill's reach, how far from the middle the
+        /// swinger's stone pays to raise the ground (see Fill.Plan). It goes last and is read only
+        /// when it is there, because the first four are what Jafna 1.0.0 wrote and still reads: an
+        /// owner on that version finds its magic, reads its thirteen bytes, never looks further,
+        /// and applies the swing without raising anything or sending a bill. The swing then costs
+        /// nothing, which is the right way to fail for a price nobody collected.
         /// </summary>
         internal static void Append(ZPackage pkg, float radius, bool held, float height, float fill)
         {
@@ -259,8 +260,8 @@ namespace Jafna
                 held = pkg.ReadBool();
                 height = pkg.ReadSingle();
 
-                // The fill share, when the swinger's version writes one. A package from 1.0.0
-                // ends here, and no share means no fill was asked for.
+                // The fill's reach, when the swinger's version writes one. A package from 1.0.0
+                // ends here, and no reach means no fill was asked for.
                 if (pkg.GetPos() + 4 <= pkg.Size()) fill = pkg.ReadSingle();
 
                 return radius > 0f;

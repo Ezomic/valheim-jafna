@@ -36,21 +36,40 @@ namespace Jafna
     /// make every swing's first metre free again, and flattening a hole a metre at a time would
     /// cost nothing, which is the free Raise ground this exists not to be.
     ///
+    /// A point is raised all the way or not at all. On 2026-09-27 Robbin asked for exactly that:
+    /// "if it can't raise a part to the level that is set to flatten, it doesnt raise that part up
+    /// and doesnt use stone for that part". The first version did the opposite in both of the
+    /// places a fill can fall short. Short of stone, it raised every point by the same fraction of
+    /// what that point needed, so the whole patch came up part of the way, the stone was gone and
+    /// nothing was at the height. And at vanilla's eight metre limit it raised a point as far as
+    /// the limit and charged for it, although no swing could ever take that point the rest of the
+    /// way. Now the stone is spent from the middle of the swing outward, each point it reaches
+    /// raised in full, and a point whose level the game will never allow is left out whatever the
+    /// pack holds (see <see cref="Measure"/>). A point left out still gets the hoe's own free metre,
+    /// because that is the hoe without this mod, and it costs nothing.
+    ///
+    /// The middle first because the middle is where the player aimed, it is the ground a swing
+    /// pulls hardest toward the height, and a patch that grows outward from it leaves one clean
+    /// edge. Cheapest first would raise more points for the same stone and leave the deepest part,
+    /// right under the crosshair, as the one hole in the swing.
+    ///
     /// Where the work happens is the part that took the most thought.
     ///
     ///  - The swinging client decides how much of the fill it can pay for, because the stone is
     ///    in its pack and nowhere else. It measures the shortfall from its own copy of the zone,
-    ///    which is the same data the owner holds, and sends a share between 0 and 1 behind the
-    ///    reach in the package Reach.cs already appends.
-    ///  - The client that owns the zone raises that share of what it measures itself. A share
-    ///    rather than a volume so that a swing across a zone line raises both halves by the same
-    ///    fraction: two zones each capped by a volume would stop at different heights along the
-    ///    line they share, and that line is a row of vertices both of them draw.
+    ///    which is the same data the owner holds, works out how far from the middle of the swing
+    ///    its stone reaches, and sends that distance behind the reach in the package Reach.cs
+    ///    already appends.
+    ///  - The client that owns the zone raises every short point inside that distance, in full,
+    ///    from what it measures itself. A distance rather than a volume so that a swing across a
+    ///    zone line stops at the same place on both sides of it: two zones each handed a volume
+    ///    would each spend it from their own half, and the line between them is a row of vertices
+    ///    both of them draw. How far a vertex is from the middle is a fact both zones agree on.
     ///  - The owner then tells the swinger what it actually raised, and the swinger pays for that.
     ///    Paying after rather than before is what keeps a mixed server honest in the right
-    ///    direction: an owner without this mod never reads the share, raises nothing and sends no
-    ///    bill, so the swing costs nothing. Paying up front would have taken stone for a raise that
-    ///    never happened.
+    ///    direction: an owner without this mod never reads the distance, raises nothing and sends
+    ///    no bill, so the swing costs nothing. Paying up front would have taken stone for a raise
+    ///    that never happened.
     ///
     /// When the swinger owns the zone, which is singleplayer and most of the time on a server,
     /// every step of that is one synchronous call and the bill is exact. When somebody else owns
@@ -61,12 +80,12 @@ namespace Jafna
     ///    carried as a debt against the next fill rather than forgiven, so rapid swings cannot be
     ///    used to raise ground for nothing.
     ///  - The ground. The swinger's copy can still show ground the last swing already raised, so
-    ///    it overestimates what is left, the share comes out below one with stone to spare, the
-    ///    patch comes up only part way and the swinger is told it ran short when it did not. That
-    ///    is left alone on purpose. It costs less stone rather than more, the next swing finishes
-    ///    the job, and every fix tried on paper either let the two sides of a zone line stop at
-    ///    different heights or needed the owner to know about zones it does not own. It is in the
-    ///    README's multiplayer section.
+    ///    it overestimates what is left, the distance comes out short of the whole swing with stone
+    ///    to spare, the rim is left for later and the swinger is told it ran short when it did not.
+    ///    That is left alone on purpose. It costs less stone rather than more, the next swing
+    ///    finishes the job, and every fix tried on paper either let the two sides of a zone line
+    ///    stop at different places or needed the owner to know about zones it does not own. It is
+    ///    in the README's multiplayer section.
     /// </summary>
     internal static class Fill
     {
@@ -111,6 +130,21 @@ namespace Jafna
 
         /// <summary>Whole items out of float arithmetic need a little slack in both directions.</summary>
         private const float Slack = 0.0001f;
+
+        /// <summary>
+        /// The distance a swing asks for when the pack pays for all of it. Infinite rather than
+        /// the swing's own radius, so it means "no limit" without the owner having to agree with
+        /// the swinger on what that radius was.
+        /// </summary>
+        internal const float Everywhere = float.PositiveInfinity;
+
+        /// <summary>
+        /// Two short points this close in distance from the middle are the same ring, in metres.
+        /// Grid points at the same distance come out of the same float arithmetic bit for bit, and
+        /// neighbouring rings are centimetres apart even at a thirty metre reach, so any small
+        /// number will do; this one is well clear of both.
+        /// </summary>
+        private const float SameRing = 0.001f;
 
         // Private on TerrainComp, and bound lazily inside a try/catch for the reason Flat.cs spells
         // out: a FieldRefAccess that throws in a static initialiser poisons every Harmony patch the
@@ -467,15 +501,31 @@ namespace Jafna
 
         // -- Measuring ---------------------------------------------------------------------------
 
-        /// <summary>One point the smooth will leave short, and by how many metres.</summary>
+        /// <summary>One point the smooth will leave short, by how many metres, and where it stands.</summary>
         private struct Lift
         {
             public int Index;
             public float Metres;
+
+            /// <summary>
+            /// Metres from the middle of the swing, grid point to grid point the way the smooth
+            /// itself measures, so the swinger and the owner, and the two zones either side of a
+            /// line, all get the same number for the same vertex.
+            /// </summary>
+            public float Distance;
+
+            /// <summary>
+            /// Cubic metres this point adds to the bill. Zero on the row a neighbouring heightmap
+            /// counts, which is raised here as well and paid for there (see <see cref="Measure"/>).
+            /// </summary>
+            public float Volume;
         }
 
         private static readonly List<Lift> Lifts = new List<Lift>();
+        private static readonly List<Lift> Planned = new List<Lift>();
         private static readonly List<Heightmap> Maps = new List<Heightmap>();
+
+        private static readonly Comparison<Lift> Nearer = (a, b) => a.Distance.CompareTo(b.Distance);
 
         /// <summary>
         /// Cubic metres a smooth centred on <paramref name="centre"/> wants to raise and cannot, on
@@ -491,10 +541,20 @@ namespace Jafna
         /// Three limits are respected on the way:
         ///
         ///  - Vanilla clamps the level delta to eight metres and the finished height to eight
-        ///    metres either side of the generated ground. After a fill the smooth delta at a short
-        ///    point sits at its one metre clamp, so the fill can bank at most eight minus one minus
-        ///    what is already banked. Past that the game throws the height away, and charging for
-        ///    it would be charging for nothing.
+        ///    metres either side of the ground the heights are kept against, which is the height
+        ///    less both deltas. A point whose level is further above that ground than eight metres
+        ///    can never be brought to it, by any number of swings or any amount of stone, so it is
+        ///    not measured at all: not raised, not charged, and not in the price the panel quotes.
+        ///    The first version filled it as far as the limit and charged for that, which is the
+        ///    half-raised, paid-for ground Robbin's rule in the class comment is against. The test
+        ///    is on the level itself, not on how far this one swing pulls the point: the smooth
+        ///    eases the rim only part of the way, so a rim point can be inside the limit for this
+        ///    swing and still never reach the level, and filling it would strand paid-for ground
+        ///    short of the height a swing or two later. <see cref="MinLift"/> of slack, so a level
+        ///    a centimetre past the limit is still filled to it rather than left a metre short.
+        ///    After a fill the smooth delta at a short point sits at its one metre clamp, so what
+        ///    can be banked is eight minus one minus what is already banked, and that stays as the
+        ///    cap for the slack.
         ///  - A point needing less than <see cref="MinLift"/> is skipped, and why is on the
         ///    constant.
         ///  - A heightmap's last row and column are the same vertices as its neighbour's first, and
@@ -522,7 +582,7 @@ namespace Jafna
             float smoothClamp = Heightmap.c_SmoothMaxDelta;
             float levelClamp = Heightmap.c_LevelMaxDelta;
 
-            float metres = 0f;
+            float volume = 0f;
 
             for (int iy = cy - span; iy <= cy + span; iy++)
             {
@@ -546,6 +606,9 @@ namespace Jafna
                     float excess = wanted - room;
                     if (excess <= 0f) continue;
 
+                    float ground = height - levelled - smoothed;
+                    if (target - ground > levelClamp + MinLift) continue;
+
                     float headroom = levelClamp - levelled - smoothClamp;
                     if (headroom <= 0f) continue;
                     if (excess > headroom) excess = headroom;
@@ -554,13 +617,18 @@ namespace Jafna
                     // is skipped too rather than billed for a lift nobody can see.
                     if (excess < MinLift) continue;
 
-                    if (record != null) record.Add(new Lift { Index = n, Metres = excess });
+                    float paid = ix < width && iy < width ? excess * scale * scale : 0f;
 
-                    if (ix < width && iy < width) metres += excess;
+                    if (record != null)
+                    {
+                        record.Add(new Lift { Index = n, Metres = excess, Distance = d * scale, Volume = paid });
+                    }
+
+                    volume += paid;
                 }
             }
 
-            return metres * scale * scale;
+            return volume;
         }
 
         /// <summary>
@@ -573,13 +641,16 @@ namespace Jafna
         /// zone. A zone with no compiler yet has never been shaped, so its deltas are all zero and
         /// its target is the crosshair, which is also what the owner will find.
         ///
-        /// <paramref name="fresh"/> is for the one call per swing that decides the share: it
-        /// brings any heightmap this machine shaped earlier in the frame up to date first, so that
-        /// when this machine also owns the zone it measures the same ground the owner half is
-        /// about to (see <see cref="Freshen(Heightmap, bool)"/>). The readout passes false, since
-        /// a stale frame there costs one frame of a number and a rebuild costs a mesh.
+        /// <paramref name="fresh"/> is for the one call per swing that decides how far the fill
+        /// reaches: it brings any heightmap this machine shaped earlier in the frame up to date
+        /// first, so that when this machine also owns the zone it measures the same ground the
+        /// owner half is about to (see <see cref="Freshen(Heightmap, bool)"/>). The readout passes
+        /// false, since a stale frame there costs one frame of a number and a rebuild costs a mesh.
+        /// That same call hands in <paramref name="record"/>, to find how far from the middle the
+        /// pack reaches; the readout only wants the total and passes null.
         /// </summary>
-        internal static float Estimate(TerrainOp.Settings settings, Vector3 point, float radius, bool fresh)
+        private static float Estimate(
+            TerrainOp.Settings settings, Vector3 point, float radius, bool fresh, List<Lift> record)
         {
             if (settings == null || !Bind()) return 0f;
 
@@ -609,7 +680,7 @@ namespace Jafna
                 float[] smooth = comp != null ? _smoothDelta(comp) : null;
 
                 need += Measure(
-                    hmap, level, smooth, new Vector3(probe.x, target, probe.z), radius, settings.m_smoothPower, null);
+                    hmap, level, smooth, new Vector3(probe.x, target, probe.z), radius, settings.m_smoothPower, record);
             }
 
             return need;
@@ -618,7 +689,7 @@ namespace Jafna
         // -- The swinging client ---------------------------------------------------------------
 
         private static TerrainOp _plannedOp;
-        private static float _plannedShare = -1f;
+        private static float _plannedReach = -1f;
 
         /// <summary>The price the last request was made at, so its bill is paid at the same rate.</summary>
         private static Price _billedAt;
@@ -636,13 +707,16 @@ namespace Jafna
         private static int[] _reserved = new int[0];
 
         /// <summary>
-        /// The share of this swing's shortfall the pack pays for, from 0 to 1, or -1 when the swing
-        /// is not asking for a fill at all.
+        /// How far from the middle of this swing the pack pays to raise the ground, in metres:
+        /// every short point nearer than this is raised in full and every one further out is left
+        /// to the smooth. <see cref="Everywhere"/> when the pack pays for all of it, and -1 when the
+        /// swing is not asking for a fill at all, including when the pack cannot pay for even the
+        /// middle.
         ///
         /// Decided once per swing and then handed to every zone the swing reaches, because
-        /// ApplyOperation is called once per zone and the share has to be the same in all of them
-        /// (see the class comment). The op object is the key: TerrainOp.Awake hands the same one to
-        /// every zone and then destroys it, so the next swing is always a different object.
+        /// ApplyOperation is called once per zone and the distance has to be the same in all of
+        /// them (see the class comment). The op object is the key: TerrainOp.Awake hands the same
+        /// one to every zone and then destroys it, so the next swing is always a different object.
         ///
         /// This is also where running short is said. Once per swing, at the moment of the swing,
         /// rather than when a bill comes back, so it lands on the click that caused it.
@@ -650,10 +724,10 @@ namespace Jafna
         internal static float Plan(TerrainOp op, Player player, float radius)
         {
             if (op == null) return -1f;
-            if (op == _plannedOp) return _plannedShare;
+            if (op == _plannedOp) return _plannedReach;
 
             _plannedOp = op;
-            _plannedShare = -1f;
+            _plannedReach = -1f;
 
             if (!JafnaConfig.AutoRaise.Value || player == null) return -1f;
 
@@ -672,14 +746,15 @@ namespace Jafna
             Price price = Resolve(player, ScaleAt(point));
             if (price == null) return -1f;
 
-            float need = Estimate(settings, point, radius, true);
+            Planned.Clear();
+            float need = Estimate(settings, point, radius, true, Planned);
             if (need <= MinVolume) return -1f;
 
             Piece own = player.GetSelectedPiece();
             float affordable = Affordable(player, price, own, out string limiting);
-            float share = affordable >= need ? 1f : Mathf.Clamp01(affordable / need);
+            float reach = affordable >= need ? Everywhere : Within(Planned, affordable);
 
-            if (share < 1f)
+            if (affordable < need)
             {
                 // Localised by MessageHud, so the item's own $ token comes out as its name.
                 player.Message(MessageHud.MessageType.Center,
@@ -691,10 +766,10 @@ namespace Jafna
                 JafnaPlugin.Log.LogInfo(
                     "Fill wanted " + need.ToString("0.00") + " cubic metres, the pack covers "
                     + (float.IsPositiveInfinity(affordable) ? "all of it" : affordable.ToString("0.00"))
-                    + ", asking for " + (share * 100f).ToString("0") + "%.");
+                    + ", so it raises " + Describe(reach) + ".");
             }
 
-            if (share <= 0f) return -1f;
+            if (reach <= 0f) return -1f;
 
             if (_reserved.Length != price.Items.Length) _reserved = new int[price.Items.Length];
             for (int k = 0; k < price.Items.Length; k++) _reserved[k] = OwnCost(own, price.Items[k]);
@@ -702,8 +777,59 @@ namespace Jafna
             _billedAt = price;
             _askedAt = Time.time;
             _askedFrame = Time.frameCount;
-            _plannedShare = share;
-            return share;
+            _plannedReach = reach;
+            return reach;
+        }
+
+        /// <summary>
+        /// How far from the middle every short point can be raised in full on
+        /// <paramref name="affordable"/> cubic metres, or 0 when not even the middle can.
+        ///
+        /// A ring at a time. Points the same distance from the middle go in together or not at
+        /// all, because raising one of four equally placed points and not the others would choose
+        /// between them by the order a loop visits them, and two zones meeting across that ring
+        /// would choose differently.
+        ///
+        /// The answer is half way between the last ring paid for and the first one that is not,
+        /// rather than the last ring's own distance. The owner compares its own distances against
+        /// it, and a line drawn exactly through a ring would leave that ring to float rounding.
+        /// </summary>
+        private static float Within(List<Lift> lifts, float affordable)
+        {
+            lifts.Sort(Nearer);
+
+            float spent = 0f;
+            float reached = -1f;
+            int i = 0;
+
+            while (i < lifts.Count)
+            {
+                float distance = lifts[i].Distance;
+                float ring = 0f;
+                int j = i;
+
+                while (j < lifts.Count && lifts[j].Distance - distance < SameRing)
+                {
+                    ring += lifts[j].Volume;
+                    j++;
+                }
+
+                if (spent + ring > affordable) return reached < 0f ? 0f : (reached + distance) * 0.5f;
+
+                spent += ring;
+                reached = distance;
+                i = j;
+            }
+
+            return Everywhere;
+        }
+
+        /// <summary>A reach in words for the Verbose log, which would otherwise print infinity.</summary>
+        private static string Describe(float reach)
+        {
+            if (float.IsPositiveInfinity(reach)) return "the whole swing";
+            if (reach <= 0f) return "nothing";
+            return "every short point within " + reach.ToString("0.00") + "m of the middle";
         }
 
         /// <summary>
@@ -823,10 +949,10 @@ namespace Jafna
 
         // -- The zone owner -----------------------------------------------------------------------
 
-        /// <summary>Whether this op, arriving with this share, is one <see cref="Apply"/> will raise ground for.</summary>
-        internal static bool Wants(TerrainOp.Settings modifier, float share)
+        /// <summary>Whether this op, arriving with this reach, is one <see cref="Apply"/> will raise ground for.</summary>
+        internal static bool Wants(TerrainOp.Settings modifier, float reach)
         {
-            return share > 0f && JafnaConfig.AutoRaise.Value && Applies(modifier);
+            return reach > 0f && JafnaConfig.AutoRaise.Value && Applies(modifier);
         }
 
         // Heightmaps an op on this machine changed the heights of this frame, and the subset of
@@ -920,9 +1046,13 @@ namespace Jafna
         }
 
         /// <summary>
-        /// Raises the given share of what this smooth cannot reach on this zone, and sends the bill.
-        /// Runs on the client that owns the zone, from the DoOperation prefix, before vanilla's
-        /// SmoothTerrain.
+        /// Raises every point on this zone the smooth cannot reach, in full, that lies nearer the
+        /// middle than <paramref name="reach"/> metres, and sends the bill. Runs on the client that
+        /// owns the zone, from the DoOperation prefix, before vanilla's SmoothTerrain.
+        ///
+        /// Each point all the way or not at all, which is Robbin's rule in the class comment. The
+        /// reach is the swinger's, and the points are this machine's own measure of the ground, so
+        /// the bill is for what was raised here rather than what the swinger expected.
         ///
         /// Before, because the smooth then does its own part on top: this banks the shortfall into
         /// the level delta, the smooth adds whatever room its clamp has left, and together they put
@@ -935,9 +1065,9 @@ namespace Jafna
         /// it, before the height was chosen; it is called again here only so this method stays
         /// correct if it is ever reached another way.
         /// </summary>
-        internal static void Apply(TerrainComp comp, Vector3 centre, TerrainOp.Settings modifier, float share, long sender)
+        internal static void Apply(TerrainComp comp, Vector3 centre, TerrainOp.Settings modifier, float reach, long sender)
         {
-            if (!Wants(modifier, share)) return;
+            if (!Wants(modifier, reach)) return;
             if (comp == null || !Bind()) return;
 
             // The owner's half of the interior test in Plan. The owner decides what is raised, so
@@ -958,26 +1088,33 @@ namespace Jafna
             float need = Measure(hmap, level, smooth, centre, modifier.m_smoothRadius, modifier.m_smoothPower, Lifts);
             if (Lifts.Count == 0) return;
 
-            float f = Mathf.Min(1f, share);
             float levelClamp = Heightmap.c_LevelMaxDelta;
+            float used = 0f;
+            int raised = 0;
 
             for (int i = 0; i < Lifts.Count; i++)
             {
+                if (Lifts[i].Distance >= reach) continue;
+
                 int n = Lifts[i].Index;
-                level[n] = Mathf.Clamp(level[n] + Lifts[i].Metres * f, -levelClamp, levelClamp);
+                level[n] = Mathf.Clamp(level[n] + Lifts[i].Metres, -levelClamp, levelClamp);
                 modified[n] = true;
+
+                used += Lifts[i].Volume;
+                raised++;
             }
+
+            if (raised == 0) return;
 
             Today();
             Filled.Add(hmap);
 
-            float used = need * f;
-
             if (JafnaConfig.Verbose.Value)
             {
                 JafnaPlugin.Log.LogInfo(
-                    "Filled " + used.ToString("0.00") + " of " + need.ToString("0.00") + " cubic metres over "
-                    + Lifts.Count + " points at " + centre.y.ToString("0.00") + "m, billing peer " + sender + ".");
+                    "Filled " + used.ToString("0.00") + " of " + need.ToString("0.00") + " cubic metres at "
+                    + centre.y.ToString("0.00") + "m, " + raised + " of " + Lifts.Count + " points, asked for "
+                    + Describe(reach) + ", billing peer " + sender + ".");
             }
 
             if (used <= 0f) return;
@@ -1029,7 +1166,7 @@ namespace Jafna
             Price price = Resolve(player, ScaleAt(point));
             if (price == null) return Terms.None;
 
-            float need = Estimate(settings, point, radius, false);
+            float need = Estimate(settings, point, radius, false, null);
             if (need <= MinVolume) return Terms.None;
 
             if (price.IsFree()) return Terms.Free;

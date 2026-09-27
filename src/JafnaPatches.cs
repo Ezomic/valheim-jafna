@@ -222,9 +222,9 @@ namespace Jafna
             Player player = Player.m_localPlayer;
             float radius = Reach.Earned(modifier.m_settings, player);
 
-            // The share of this swing's shortfall the pack pays for, or -1 for none. Decided once
-            // per swing and cached on the op, so every zone this call is repeated for gets the
-            // same share - see Fill.Plan.
+            // How far from the middle the pack pays to raise the ground, or -1 for no fill.
+            // Decided once per swing and cached on the op, so every zone this call is repeated for
+            // gets the same distance. See Fill.Plan.
             float fill = Fill.Plan(modifier, player, radius);
 
             // Sent when any part of the mod has something to say. A held height has to travel
@@ -264,7 +264,7 @@ namespace Jafna
         /// It writes unconditionally, including the "nothing there" value. Leaving a stale
         /// radius behind would apply one player's Crafting to the next player's swing, and
         /// because both swings are perfectly ordinary it would look like the mod randomly
-        /// choosing a width. A stale fill share would be worse: it would raise ground on the
+        /// choosing a width. A stale fill reach would be worse: it would raise ground on the
         /// next swing and bill whoever sent that one.
         ///
         /// <paramref name="sender"/> is the original method's own first argument, the peer that
