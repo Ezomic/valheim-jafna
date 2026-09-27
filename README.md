@@ -108,6 +108,12 @@ it, so ground further below your height than that cannot ever get there, however
 carry. And when your stone runs out partway, the ground it did not reach stays where the free
 metre puts it, which is covered further down.
 
+Neither is left out in silence, because silence is how this started: a height on the panel and
+ground that stops short of it with nothing to say why. Ground too far below gets a line in the
+build panel before you swing, `Part of the ground here cannot be filled that high`, and the
+swing puts `Too far below to raise` in the middle of the screen. Running out of stone has its
+own panel line and message, below.
+
 The price is the hoe's own. Jafna finds the Raise ground entry on the hoe, takes what it costs,
 and works out how much ground one Raise ground swing adds to flat ground. Filling costs stone at
 that rate per cubic metre. Both numbers come from the running game and go in the log once a
@@ -131,8 +137,13 @@ further out gets only the hoe's free metre and costs nothing, and the middle of 
 you ran out. The middle comes first because that is where you aimed and where the swing pulls
 hardest toward your height, and a patch that grows out from it leaves one clean edge to carry on
 from. The first version spread the stone evenly instead, which brought every point up by the
-same fraction of what it needed and left not even the middle at your height. The build panel
-shows what a swing will cost before you take it, and what you carry when that is not enough.
+same fraction of what it needed and left not even the middle at your height.
+
+The build panel shows what a swing will cost before you take it, and that is what the swing
+takes. When you carry enough it is the price of the whole patch. When you do not, it says what
+you carry, what this swing will fill and take for it, and what all of it would cost:
+`You carry 1 Stone, this swing fills the middle for 1 Stone, all of it costs 3 Stone`. When you
+cannot pay for even the middle, it says the swing fills none of it, and that swing takes nothing.
 
 A world with NoBuildCost set raises for free. The nocost command lifts the limit but still takes
 any stone you carry, which is what vanilla's Raise ground does as well.
@@ -264,8 +275,8 @@ any of it with a second player.
 
 Raising low ground for stone has not been in a game at all yet. That covers the price Raise
 ground resolves to, a fill landing where the panel said it would, the stone it takes, the middle
-coming up first when the stone runs short, ground past the eight metre limit being left alone,
-and the bill travelling between two machines.
+coming up first when the stone runs short and the panel's price for it, ground past the eight
+metre limit being left alone and said so, and the bill travelling between two machines.
 
 ## Bugs and ideas
 

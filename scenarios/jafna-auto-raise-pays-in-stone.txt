@@ -1,6 +1,6 @@
 # Jafna: a flattening swing raises low ground for stone, and nothing else costs any.
 #
-# Four claims:
+# Five claims:
 #
 #   1. Digging is free. A swing that pulls a mound down further than the hoe's one metre takes no
 #      stone.
@@ -9,6 +9,9 @@
 #      swing aims at.
 #   4. With no stone the ground comes up the hoe's own metre and stops there, about a metre short,
 #      and the middle of the screen says "Not enough Stone".
+#   5. With too little stone the swing raises the middle of the patch and bills only that: the one
+#      stone leaves the pack, the middle comes up near the height, the middle of the screen says
+#      "Not enough Stone", and nothing is left owing for the next swing.
 #
 # HOW A SWING AIMS ABOVE THE GROUND. A scenario cannot hold Left Alt and Jafna has no console
 # command for a held height. It does not need either. Without Alt the hoe's Level ground does not
@@ -25,10 +28,10 @@
 #
 # THE MOUNDS. Two Raise ground on one spot. raise_v2 was read out of the game files: radius 2, lift
 # 1, power 0.1, Stone x2. That leaves a block about three metres square and 1.8 to 2 metres high
-# that drops to the old ground within a metre. Mound B is 3 m ahead of where you start and mound A
-# is 8 m behind you. Swings from a mound are taken standing half a metre off its middle toward the
-# spot, because from the middle, on some headings, the mound's own corner hides a spot three
-# metres out.
+# that drops to the old ground within a metre. Mound B is 3 m ahead of where you start, mound A
+# is 8 m behind you and mound C 20 m behind you. Swings from a mound are taken standing half a
+# metre off its middle toward the spot, because from the middle, on some headings, the mound's own
+# corner hides a spot three metres out.
 #
 # THE ORDER IS SET BY THE CREDIT, AND THE RUN NEEDS A FRESH SESSION. Jafna takes stone whole and
 # keeps the rest until you log out, so a second run in the same session starts with up to a stone
@@ -39,12 +42,20 @@
 # is then measured as the ground a swing with no stone leaves, and a correct build fails there:
 # about one re-run in six, worked through the copy of the game's arithmetic described below. So
 # log out and back in before every run. With nothing carried in, nothing is paid for until
-# section 3, which is why sections 4, 2 and 1 come first: they expect no stone to move, and stone
+# section 5, which is why sections 4, 2 and 1 come first: they expect no stone to move, and stone
 # already paid for would let a build that charges where it should not pass them. The first swing
 # is one no stone can pay for: from mound B, with an empty pack and Crafting at 100 so it covers
 # 12 metres, it wants about 7 cubic metres raised, and one stone buys 4.1 (Raise ground's Stone x2
 # over the 8.27 cubic metres one Raise ground adds). It runs short, and that is claim 4's message.
-# Claims 2 and 1 follow, then claim 4's height, then claim 3.
+# Claims 2 and 1 follow, then claim 4's height, then claim 5, then claim 3.
+#
+# Claim 5 comes after claim 4's height because it is the first swing that spends stone, and it
+# leaves up to about a third of a stone paid for: a short swing stops at a whole ring of points,
+# so it rarely uses the stone to the last crumb. That leftover is why claim 3 no longer checks
+# that its first stone leaves the pack; whether it does now depends on the leftover. Claim 5's
+# own `carrying Stone 0` is the proof that a fill takes stone, and claim 3's first swing becomes
+# the proof that claim 5 left no debt: it needs well under a stone, so a correct build, holding
+# one stone and the leftover, is never short there.
 #
 # Claim 4's height and claim 3 are on opposite sides of mound A on purpose. A swing that runs out
 # leaves ground a metre up and flat, and the next swing on that spot continues that flat instead of
@@ -64,8 +75,20 @@
 #   - `carrying Stone 3` in section 1: a build that priced digging like filling takes one and
 #     reads 2. `height 3 0 1.15 0.4` next to it proves the swing did dig: an untouched mound reads
 #     about 1.9.
-#   - `carrying Stone 0` in section 3: the one stone can only go to the fill. A fill that took no
+#   - `carrying Stone 0` in section 5: the one stone can only go to the fill. A fill that took no
 #     stone, or never ran, leaves 1.
+#   - `centre Not enough Stone yes` in section 5: one stone buys 4.1 cubic metres and that swing
+#     wants 4.5 to 10. A build that never raises, or raises for free, says nothing.
+#   - `height 0 2.5 -0.2 0.25` in section 5: the middle of the swing reached about the height.
+#     The build this rule replaced, which spread short stone evenly, reads about -0.45 at the
+#     median there, so this catches it in about 4 runs of 10. No spot does better: the swing
+#     eases the ground round its middle, so even a correct build reads down to -0.45 wherever the
+#     grid puts the nearest vertex (2 runs in 1000 read just below it). Manual step 6 is the one
+#     that tells the two apart every time.
+#   - `centre Not enough no` after section 3's first swing: a build that raised only the middle
+#     in section 5 but billed the whole patch took the one stone and still owes most of another,
+#     so it runs short on this swing. It catches that about 5 runs in 6, and a build that raised
+#     and billed the whole patch the same.
 #   - `height 0 -2.5 0 0.25` at the end: three paid swings bring the patch to your height. A build
 #     that stopped at the free metre reads about -0.9.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
@@ -78,29 +101,38 @@
 # charges for the free metre each failed at least one. One thing it could not catch is the
 # three centimetre floor on touch-ups, which is manual step 5. Nothing here has run in a game.
 #
-# Checked again on 2026-09-27 for the middle-first rule, 300 runs: every check passed from a fresh
-# session. Two things it does not tell apart, and manual steps 6 and 7 do. The build this rule
-# replaced, which spread short stone evenly over the whole patch, passes every check too, because
-# no swing here runs short with stone in the pack; a check that did would sit on the edge of the
-# raised patch, where the grid and the collision mesh move the reading by more than the two
-# builds differ, unless the mound were tall enough to hide the spot from the placement ray. And
-# nothing here aims more than eight metres above the ground.
+# Checked again on 2026-09-27 for the middle-first rule, with section 5 added, 300 runs from a
+# fresh session on slopes up to 5 percent: a correct build failed one, at -0.4501 on the middle
+# check. The even-spread build failed 133, a build that raised the middle and billed all of it
+# 253, a build that raised and billed all of it 253, a build that never raises all 300. Section 5
+# measures the middle and not the edge of the raised patch on purpose: at the edge the grid and
+# the collision mesh move the reading by more than the builds differ. A taller mound would widen
+# the gap, and by the same arithmetic a third Raise ground puts the spot past the five metres the
+# placement ray reaches from your eye.
+#
+# What no step here can see: nothing aims more than eight metres above the ground, which needs a
+# held height or a drop no mound can make, so the eight metre rule, its message and its panel
+# line are manual step 7. And no step reads the build panel for a spot, because the panel follows
+# where the camera looks and `build` turns the look back after each swing, so the short-of-stone
+# panel lines are manual steps 2 and 6.
 #
 # NEEDS: a session nothing has been paid for in yet, so log out and back in before every run (see
-# THE ORDER above). Singleplayer, English as the game language (the message names the item), and a strip of
-# untouched, fairly level ground with no ward from 12 m ahead of you to 14 m behind, 9 m wide on
-# either side. Not near a base. Eat first: there are eleven swings at 5 stamina each. No held
-# height (the panel must not say HOLDING). Jafna's Reach settings at their defaults, because the
-# first swing relies on MaxRadius 6.
+# THE ORDER above). Singleplayer, English as the game language (the message names the item), and a
+# strip of untouched ground no steeper than 1 in 20 with no ward from 12 m ahead of you to 26 m
+# behind, 9 m wide on either side. Not near a base. Eat first: there are fourteen swings at 5
+# stamina each. No held height (the panel must not say HOLDING). Jafna's Reach settings at their
+# defaults, because the 12 metre swings rely on MaxRadius 6.
 #
 # It can fail with nothing wrong in two ways. A patch that crosses a zone boundary, where each
-# zone decides the continued flat for itself. And a steep slope. A second run in the same session
-# used to be a third, and is now simply a run that did not meet NEEDS.
+# zone decides the continued flat for itself. And a steep slope: between 5 and 7 percent a correct
+# build failed 25 runs in 300, mostly at section 5, where the one stone paid for the whole swing
+# and so it was not short. A second run in the same session used to be a third, and is now simply
+# a run that did not meet NEEDS.
 #
-# LEAVES: two mounds, one with its near side dug about a metre, two patches a metre up where the
-# stone ran out, one patch raised to mound height, dirt over all of it. Crafting is put back. Devkit
-# empties the pack and hands back the test kit. Jafna keeps up to a stone of credit until you log
-# out.
+# LEAVES: three mounds, one with its near side dug about a metre, two patches a metre up where the
+# stone ran out, one patch whose middle is raised to mound height with a ledge round it, one patch
+# raised to mound height, dirt over all of it. Crafting is put back. Devkit empties the pack and
+# hands back the test kit. Jafna keeps up to a stone of credit until you log out.
 #
 # MANUAL STEPS, for what no step can see. Log out and back in first, which empties what Jafna has
 # carried over and makes step 1's line come again. A mound below is two Raise ground on one spot,
@@ -111,8 +143,10 @@
 #      square False, so one swing adds 8,27 cubic metres to flat ground for Stone x2. That is
 #      0,242 $item_stone per cubic metre."
 #   2. Stand on a fresh mound with 10 Stone and aim at untouched ground 2 to 3 m out. Expected: a
-#      panel line "Filling up to that height costs N Stone", N at least 1. Drop the stone.
-#      Expected: "You carry 0 Stone, filling all of it costs N Stone".
+#      panel line "Filling up to that height costs N Stone", N at least 1. Drop all but 1 Stone.
+#      Expected, when N is more than 1: "You carry 1 Stone, this swing fills the middle for 1
+#      Stone, all of it costs N Stone", the same N. Drop the last one. Expected: "You carry 0
+#      Stone, not enough to fill any of it, all of it costs N Stone".
 #   3. Carry 20 Stone. From low ground, aim at the top of a mound and press Left Alt. Walk to
 #      untouched low ground and swing once. Expected: the middle of the patch comes up to the held
 #      height and Stone leaves the pack. Press Left Alt again to let go.
@@ -125,7 +159,8 @@
 #      every stone and swing twice more. Expected: neither swing puts anything in the middle of
 #      the screen, and there is still no cost line.
 #   6. Log out and back in. With Crafting at 60 or more and exactly 1 Stone, stand on a fresh mound
-#      half a metre off its middle toward untouched ground and swing at that ground 2.5 m out.
+#      half a metre off its middle toward untouched ground and aim at that ground 2.5 m out.
+#      Expected before the swing: "this swing fills the middle for 1 Stone" in the panel. Swing.
 #      Expected: "Not enough Stone" in the middle of the screen, and the stone leaves the pack. A
 #      patch two or three metres across in the middle of the swing comes up to within a few tenths
 #      of the mound's height. The ground round it comes up about a metre and stops, so there is a
@@ -137,9 +172,10 @@
 #      more.
 #   7. Find a drop of more than nine metres onto flat ground nobody has shaped, a cliff or the side
 #      of a tall rock. Press Left Alt with the crosshair on the top, go down, carry 20 Stone, and
-#      swing at the flat ground at least six metres out from the foot of the drop. Expected: no
-#      cost line in the panel before the swing, nothing in the middle of the screen, all 20 Stone
-#      still there, and the ground up about a metre. Press Left Alt again to let go.
+#      swing at the flat ground at least six metres out from the foot of the drop. Expected before
+#      the swing: no cost line, and "The ground here cannot be filled that high" in the panel.
+#      Expected after it: "Too far below to raise" in the middle of the screen, all 20 Stone still
+#      there, and the ground up about a metre. Press Left Alt again to let go.
 
 
 # ---- setting up
@@ -245,19 +281,54 @@ height 0 3 -0.9 0.38
 skill Crafting 0
 
 
-# ---- 3: raising takes stone and reaches your height, from mound A's left side
-#
-# One stone first. This swing needs well under a stone's worth and more than nothing, so it is
-# never short and always takes exactly that stone. Then five more and two swings on the same
-# spot, because one swing only lands its middle on your height and eases the ground round it.
+# ---- mound C, 20 m behind where you started
 
 wait 2
-move 0 -1
+move -15 -0.5
+give Stone:4
+mark
+build raise_v2 3 0
+wait 1
+build raise_v2 3 0
+wait 1
+carrying Stone 0
+height 3 0 1.9 0.4
+
+
+# ---- 5: one stone, short, measured, from mound C's right side
+#
+# The same swing as section 4's second half, 12 m wide from the mound, with one stone in the pack.
+# It wants 4.5 to 10 cubic metres and the stone buys 4.1, so it is always short. It raises the
+# middle point and the rings round it that the stone pays for in full, takes the stone, and leaves
+# the rest to the hoe's free metre. Measured at the spot, which is the middle of the swing.
+
+wait 2
+move 3 0.5
+mark
+skill Crafting 100
+give Stone:1
+build mud_road_v2 0 2.5
+wait 1
+carrying Stone 0
+centre Not enough Stone yes
+height 0 2.5 -0.2 0.25
+skill Crafting 0
+
+
+# ---- 3: raising takes stone and reaches your height, from mound A's left side
+#
+# One stone first, on top of whatever section 5 left paid for. This swing needs well under a
+# stone's worth and more than nothing, so on a correct build it is never short, and here that is
+# the check that section 5 left nothing owing. Whether this stone leaves the pack depends on that
+# leftover, so it is not checked. Then five more and two swings on the same spot, because one
+# swing only lands its middle on your height and eases the ground round it.
+
+wait 2
+move 12 -1
 mark
 give Stone:1
 build mud_road_v2 0 -2.5
 wait 1
-carrying Stone 0
 centre Not enough no
 
 give Stone:5

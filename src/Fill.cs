@@ -48,6 +48,13 @@ namespace Jafna
     /// out whatever the pack holds (see <see cref="Measure"/>). A point left out still gets the
     /// hoe's own free metre, because that is the hoe without this mod, and it costs nothing.
     ///
+    /// Both ways of leaving a point out are said, before the swing and at it. The build panel
+    /// prices only what the swing will fill, says when that is the middle and not all of it, and
+    /// says when part of the swing is past the eight metre limit (see <see cref="Quote"/>). The
+    /// swing itself puts one message in the middle of the screen (see <see cref="Plan"/>). A
+    /// point left out in silence would bring back the complaint this feature began with, ground
+    /// stopping short of the height on the panel with nothing to say why, this time by design.
+    ///
     /// "As far as the swing takes it" is not "all the way to the level", and the gap between the
     /// two is the hoe's. SmoothTerrain eases each point toward the target by <c>1 - (d/r)^power</c>
     /// rather than setting it, and the hoe's Level ground has power 1, so one swing lands only its
@@ -566,7 +573,12 @@ namespace Jafna
         ///    a centimetre past the limit is still filled to it rather than left a metre short.
         ///    After a fill the smooth delta at a short point sits at its one metre clamp, so what
         ///    can be banked is eight minus one minus what is already banked, and that stays as the
-        ///    cap for the slack.
+        ///    cap for the slack. Every point left out this way is counted in
+        ///    <paramref name="beyond"/>, because leaving it out in silence was the bug this whole
+        ///    feature exists to fix: the panel shows a height and the ground stops short of it with
+        ///    nothing on screen to say why. Plan says so in the middle of the screen and the panel
+        ///    says so under the price. Only points that would otherwise have been filled count,
+        ///    which is why the <see cref="MinLift"/> test comes first.
         ///  - A point needing less than <see cref="MinLift"/> is skipped, and why is on the
         ///    constant.
         ///  - A heightmap's last row and column are the same vertices as its neighbour's first, and
@@ -575,7 +587,7 @@ namespace Jafna
         /// </summary>
         private static float Measure(
             Heightmap hmap, float[] level, float[] smooth, Vector3 centre, float radius, float power,
-            List<Lift> record)
+            List<Lift> record, ref int beyond)
         {
             if (hmap == null || radius <= 0f) return 0f;
 
@@ -616,10 +628,14 @@ namespace Jafna
 
                     float room = Mathf.Max(0f, smoothClamp - smoothed);
                     float excess = wanted - room;
-                    if (excess <= 0f) continue;
+                    if (excess < MinLift) continue;
 
                     float ground = height - levelled - smoothed;
-                    if (target - ground > levelClamp + MinLift) continue;
+                    if (target - ground > levelClamp + MinLift)
+                    {
+                        beyond++;
+                        continue;
+                    }
 
                     float headroom = levelClamp - levelled - smoothClamp;
                     if (headroom <= 0f) continue;
@@ -658,12 +674,16 @@ namespace Jafna
         /// first, so that when this machine also owns the zone it measures the same ground the
         /// owner half is about to (see <see cref="Freshen(Heightmap, bool)"/>). The readout passes
         /// false, since a stale frame there costs one frame of a number and a rebuild costs a mesh.
-        /// That same call hands in <paramref name="record"/>, to find how far from the middle the
-        /// pack reaches; the readout only wants the total and passes null.
+        /// Both hand in <paramref name="record"/>, to find how far from the middle the pack
+        /// reaches: the swing to ask for that distance, the readout to price it.
+        /// <paramref name="beyond"/> is how many points were left out for the eight metre limit
+        /// (see <see cref="Measure"/>), so both can say so.
         /// </summary>
         private static float Estimate(
-            TerrainOp.Settings settings, Vector3 point, float radius, bool fresh, List<Lift> record)
+            TerrainOp.Settings settings, Vector3 point, float radius, bool fresh, List<Lift> record,
+            out int beyond)
         {
+            beyond = 0;
             if (settings == null || !Bind()) return 0f;
 
             Vector3 probe = point + Vector3.up * settings.m_levelOffset;
@@ -692,7 +712,8 @@ namespace Jafna
                 float[] smooth = comp != null ? _smoothDelta(comp) : null;
 
                 need += Measure(
-                    hmap, level, smooth, new Vector3(probe.x, target, probe.z), radius, settings.m_smoothPower, record);
+                    hmap, level, smooth, new Vector3(probe.x, target, probe.z), radius, settings.m_smoothPower, record,
+                    ref beyond);
             }
 
             return need;
@@ -731,7 +752,11 @@ namespace Jafna
         /// one to every zone and then destroys it, so the next swing is always a different object.
         ///
         /// This is also where running short is said. Once per swing, at the moment of the swing,
-        /// rather than when a bill comes back, so it lands on the click that caused it.
+        /// rather than when a bill comes back, so it lands on the click that caused it. Ground
+        /// too far below the height for the game to ever allow is said here too, and for the same
+        /// reason; the build panel says it before the swing as well. Only one of the two, because
+        /// a centre message replaces the one before it outright, and running short goes first:
+        /// it is the one more stone fixes, and the other is still on the panel.
         /// </summary>
         internal static float Plan(TerrainOp op, Player player, float radius)
         {
@@ -759,18 +784,29 @@ namespace Jafna
             if (price == null) return -1f;
 
             Planned.Clear();
-            float need = Estimate(settings, point, radius, true, Planned);
-            if (need <= MinVolume) return -1f;
+            float need = Estimate(settings, point, radius, true, Planned, out int beyond);
+
+            if (need <= MinVolume)
+            {
+                if (beyond > 0) player.Message(MessageHud.MessageType.Center, "Too far below to raise");
+                return -1f;
+            }
 
             Piece own = player.GetSelectedPiece();
             float affordable = Affordable(player, price, own, out string limiting);
             float reach = affordable >= need ? Everywhere : Within(Planned, affordable);
 
-            if (affordable < need)
+            // On the reach rather than on the two volumes, so the message and the fill cannot
+            // disagree over a rounding difference between two ways of adding the same numbers.
+            if (!float.IsPositiveInfinity(reach))
             {
                 // Localised by MessageHud, so the item's own $ token comes out as its name.
                 player.Message(MessageHud.MessageType.Center,
                     "Not enough " + (limiting ?? "$item_stone") + " to raise all of it");
+            }
+            else if (beyond > 0)
+            {
+                player.Message(MessageHud.MessageType.Center, "Too far below to raise all of it");
             }
 
             if (JafnaConfig.Verbose.Value)
@@ -778,7 +814,9 @@ namespace Jafna
                 JafnaPlugin.Log.LogInfo(
                     "Fill wanted " + need.ToString("0.00") + " cubic metres, the pack covers "
                     + (float.IsPositiveInfinity(affordable) ? "all of it" : affordable.ToString("0.00"))
-                    + ", so it raises " + Describe(reach) + ".");
+                    + ", so it raises " + Describe(reach)
+                    + (beyond > 0 ? ", and leaves " + beyond + " points past the eight metre limit alone" : "")
+                    + ".");
             }
 
             if (reach <= 0f) return -1f;
@@ -1099,7 +1137,11 @@ namespace Jafna
             Freshen(hmap, true);
 
             Lifts.Clear();
-            float need = Measure(hmap, level, smooth, centre, modifier.m_smoothRadius, modifier.m_smoothPower, Lifts);
+            // The swinger has already said whether any of it is too far below; the owner only
+            // leaves those points out.
+            int beyond = 0;
+            float need = Measure(
+                hmap, level, smooth, centre, modifier.m_smoothRadius, modifier.m_smoothPower, Lifts, ref beyond);
             if (Lifts.Count == 0) return;
 
             float levelClamp = Heightmap.c_LevelMaxDelta;
@@ -1151,26 +1193,47 @@ namespace Jafna
             Free,
             Paid,
             Covered,
-            Short
+
+            /// <summary>Short of stone: this swing fills the middle and takes stone for it.</summary>
+            Short,
+
+            /// <summary>Short of stone: this swing fills the middle on what is already paid for.</summary>
+            ShortCovered,
+
+            /// <summary>Short of stone: this swing cannot pay for even the middle, so it fills nothing.</summary>
+            Unaffordable
         }
 
+        /// <summary>Short points recorded for the readout, so pricing a swing never disturbs a swing's own list.</summary>
+        private static readonly List<Lift> Quoted = new List<Lift>();
+
         /// <summary>
-        /// What a swing here would cost, for the build panel. <paramref name="cost"/> is what the
-        /// whole fill takes out of the pack in whole items, after what is already paid;
-        /// <paramref name="carried"/> is what the pack holds, filled only when it is short, and
-        /// <paramref name="own"/> what the entry itself takes of the same items, filled only when
-        /// that is short too and is not nothing.
+        /// What a swing here would cost, for the build panel. <paramref name="cost"/> is what this
+        /// swing takes out of the pack in whole items, after what is already paid, and
+        /// <paramref name="all"/> what filling the whole of it would take; they differ only when
+        /// the pack is short. <paramref name="carried"/> is what the pack holds and
+        /// <paramref name="own"/> what the entry itself takes of the same items, which the short
+        /// lines need and the others do not. <paramref name="far"/> is whether any of the swing is
+        /// too far below the height for the game to ever allow (see <see cref="Measure"/>), which
+        /// can be true whatever the terms, including None.
+        ///
+        /// Priced exactly as the swing will be billed: the same cutoff <see cref="Plan"/> will
+        /// send, worked out by the same <see cref="Within"/>, and only the points inside it. The
+        /// first version priced the whole fill whatever the pack held, and after the fill became
+        /// middle first that was a price no swing would ever charge.
         ///
         /// Whole items, because that is what a player watches leave the pack. A fraction on screen
         /// would disagree with the pack on every swing and be right only on average.
         /// </summary>
         internal static Terms Quote(
             Player player, TerrainOp.Settings settings, Vector3 point, float radius,
-            out string cost, out string carried, out string own)
+            out string cost, out string all, out string carried, out string own, out bool far)
         {
             cost = null;
+            all = null;
             carried = null;
             own = null;
+            far = false;
 
             if (!JafnaConfig.AutoRaise.Value || player == null || !Applies(settings)) return Terms.None;
 
@@ -1180,7 +1243,9 @@ namespace Jafna
             Price price = Resolve(player, ScaleAt(point));
             if (price == null) return Terms.None;
 
-            float need = Estimate(settings, point, radius, false, null);
+            Quoted.Clear();
+            float need = Estimate(settings, point, radius, false, Quoted, out int beyond);
+            far = beyond > 0;
             if (need <= MinVolume) return Terms.None;
 
             if (price.IsFree()) return Terms.Free;
@@ -1189,30 +1254,59 @@ namespace Jafna
             Inventory pack = player.GetInventory();
             Piece selected = player.GetSelectedPiece();
 
+            // The cheat lifts the limit and still takes what is carried, so it is never short but
+            // is still quoted.
+            float affordable = Affordable(player, price, selected, out string _);
+            float reach = affordable >= need ? Everywhere : Within(Quoted, affordable);
+            bool everything = float.IsPositiveInfinity(reach);
+            float spent = everything ? need : Inside(Quoted, reach);
+
             bool anything = false;
             cost = "";
+            all = "";
             carried = "";
             own = "";
 
             for (int k = 0; k < price.Items.Length; k++)
             {
                 string item = price.Items[k];
-                int whole = Mathf.Max(0, Mathf.CeilToInt(need * price.PerCubicMetre[k] - CreditOf(item) - Slack));
-                if (whole > 0) anything = true;
+                int now = WholeItems(spent, price, k);
+                if (now > 0) anything = true;
 
-                cost += (k > 0 ? ", " : "") + whole + " " + item;
+                cost += (k > 0 ? ", " : "") + now + " " + item;
+                all += (k > 0 ? ", " : "") + WholeItems(need, price, k) + " " + item;
                 carried += (k > 0 ? ", " : "") + (pack == null ? 0 : pack.CountItems(item)) + " " + item;
 
                 int entry = OwnCost(selected, item);
                 if (entry > 0) own += (own.Length > 0 ? ", " : "") + entry + " " + item;
             }
 
-            // The cheat lifts the limit and still takes what is carried, so it is never short but
-            // is still quoted.
-            float affordable = Affordable(player, price, selected, out string _);
-            if (affordable < need) return Terms.Short;
+            if (everything) return anything ? Terms.Paid : Terms.Covered;
+            if (reach <= 0f) return Terms.Unaffordable;
+            return anything ? Terms.Short : Terms.ShortCovered;
+        }
 
-            return anything ? Terms.Paid : Terms.Covered;
+        /// <summary>Cubic metres of fill inside a cutoff, counted the way the owner bills them in Apply.</summary>
+        private static float Inside(List<Lift> lifts, float reach)
+        {
+            float spent = 0f;
+
+            for (int i = 0; i < lifts.Count; i++)
+            {
+                if (lifts[i].Distance < reach) spent += lifts[i].Volume;
+            }
+
+            return spent;
+        }
+
+        /// <summary>
+        /// Whole items of one kind a fill of this many cubic metres takes from the pack, after what
+        /// is already paid. The arithmetic of <see cref="Pay"/>, which takes a whole item only
+        /// when the ledger would otherwise go below nothing.
+        /// </summary>
+        private static int WholeItems(float volume, Price price, int k)
+        {
+            return Mathf.Max(0, Mathf.CeilToInt(volume * price.PerCubicMetre[k] - CreditOf(price.Items[k]) - Slack));
         }
     }
 }

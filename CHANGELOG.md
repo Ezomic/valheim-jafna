@@ -25,10 +25,12 @@ carries on from there. Short of stone, a swing raises the middle of the patch fi
 outward as far as the stone goes, and says so. The ground it did not reach gets the hoe's free
 metre and nothing else. The game never lets ground sit more than eight metres above where the
 world made it, so ground further below the height than that is left alone too, rather than raised
-partway and charged for a height it can never reach.
+partway and charged for a height it can never reach. The build panel says so before the swing,
+and the swing says "Too far below to raise".
 
-The build panel says what a swing will cost before you take it, and what you carry when that is
-not enough.
+The build panel says what a swing will cost before you take it, and that is what it takes. Short
+of stone it says what you carry, what this swing fills and takes for it, and what all of it would
+cost, or that it fills none of it when your stone does not reach even the middle.
 
 In multiplayer the client that owns the zone raises the ground and sends your client the bill,
 and your client pays it out of your pack. A zone owner without this version raises nothing and
@@ -39,8 +41,8 @@ Lowering has not changed. Ground well above the target still stops after about a
 where it was raised before.
 
 Not run in a game yet. The price Raise ground resolves to, the fill itself, the middle-first
-rule when stone runs short, the eight metre rule and the bill between two machines are all
-untested.
+rule when stone runs short, the eight metre rule, the panel lines and messages for both, and the
+bill between two machines are all untested.
 
 ## 1.0.0 - 20 September 2026
 
