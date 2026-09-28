@@ -63,11 +63,14 @@
 # mound the hoe is still on Raise ground, which Jafna's panel says nothing about. Anything that
 # reads the panel after a mound selects Level ground again first.
 #
-# THE HELD HEIGHT. The first run had one switched on part-way through, most likely by Alt+Tab,
-# since Left Alt is the hold key and nothing in a scenario can press it. Every swing after it went
-# to the held height instead of your own, and nothing said so. So before each section's swing the
-# panel is read for HOLDING: if that check fails, the run was disturbed and nothing after it in
-# that section means anything. Stay out of other windows while it runs.
+# THE HELD HEIGHT. The first run had one switched on part-way through, by Alt+Tab: Left Alt is the
+# hold key, and the build that ran acted the moment it went down, which switching windows does
+# while the game still has the focus. Every swing after it went to the held height instead of your
+# own, and nothing said so. That is fixed since: the key counts when it is let go, and not when
+# another key was pressed while it was down or the window lost focus in between. No step here can
+# press a key or take the focus away, so manual steps 9 to 12 are how to see it. The check stays
+# anyway: before each section's swing the panel is read for HOLDING, and if that check fails, the
+# run was disturbed and nothing after it in that section means anything.
 #
 # THE PRICE. A point is charged for the part of its way up that is past its free metre. Every point
 # here starts with its whole metre, and the low ground round a mound is about 1.9 m below its top,
@@ -189,6 +192,8 @@
 #     turns the look back after each swing. Manual steps 2 and 6. The one exception is the panel
 #     as it stood while a swing was aimed, which an `onscreen` straight after the `build` still
 #     reads; section 7 uses that, and it cannot price a spot without swinging at it.
+#   - The hold key ignoring Alt+Tab and chords, since nothing here presses a key or takes the
+#     focus away. Manual steps 9 to 12.
 #
 # NEEDS: singleplayer, English as the game language (the messages name the item and the bench),
 # no NoWorkbench key set in the world, no nocost, and a strip of untouched ground no steeper than 1
@@ -279,6 +284,19 @@
 #      metre. A build that gave a filled point its metre back, the way Raise ground does, shows 3 or
 #      less there, since the hoe would then do most of that metre for free. Press Left Alt again to
 #      let go.
+#
+#   Steps 9 to 12 are the hold key, which no step can press. Take the hoe out, select Level ground
+#   and aim at the ground, with the panel not saying HOLDING.
+#
+#   9. Press Alt+Tab to switch to another window, wait a second, and switch back to the game.
+#      Expected: the panel does not say HOLDING. The build before this fix pinned a height here
+#      and said HOLDING from then on.
+#  10. Hold Left Alt, tap W once, and let go of Left Alt. Expected: you take a step, and the panel
+#      does not say HOLDING.
+#  11. Press Left Alt on its own and keep it down for a second, then let go. Expected: nothing
+#      changes while it is down, and the panel says "HOLDING height, press LeftAlt to release" the
+#      moment you let go, holding the height that was under the crosshair when you pressed.
+#  12. Press and let go of Left Alt on its own again. Expected: HOLDING goes when you let go.
 
 
 # ---- setting up

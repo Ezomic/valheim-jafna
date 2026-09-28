@@ -68,6 +68,13 @@ The panel says `HOLDING height, press LeftAlt to release` for as long as it last
 is deliberate: the single mistake this feature can cause is forgetting it is on, and a line
 that tells you how to stop cannot be read as decoration.
 
+The key counts when you let go of it, and only when you pressed it on its own. Press another key
+or a mouse button while it is down, or let the game window lose focus before you let go, and
+nothing happens. That is for Alt+Tab. Switching windows starts with Alt going down while the game
+still has the focus, and the first version, which acted the moment the key went down, pinned a
+height whenever you tabbed out with a levelling tool in your hands, and it stayed on when you came
+back. The height held is still the one under your crosshair when you pressed.
+
 Hold a height above the ground and swinging raises it all the way, for stone, as long as the
 height is within eight metres of where the world made the ground. The next section has the
 price. Hold one more than about a metre below the ground and the ground still stops short: hold
@@ -315,6 +322,8 @@ the stone it takes and each point's free metre coming off the bill, the middle c
 when the stone runs short and the panel's price for it, ground past the eight metre limit being
 left alone and said so, the workbench rule and its two messages, and the bill travelling between
 two machines.
+
+The hold key counting on release, and ignoring Alt+Tab and chords, has not been in a game either.
 
 ## Bugs and ideas
 

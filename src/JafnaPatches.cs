@@ -38,6 +38,9 @@ namespace Jafna
         private static bool _bindFailed;
         private static bool _skillReported;
 
+        private static readonly Keys.Tap HoldTap = new Keys.Tap();
+        private static float _heightAtPress;
+
         /// <summary>
         /// Bound lazily and inside a try/catch for the reason spelled out in Flat.cs: a
         /// FieldRefAccess that throws at type-init poisons every patch in the class, and it
@@ -434,7 +437,20 @@ namespace Jafna
             // knows a levelling tool is out and where the ghost is resting. A key that worked
             // with the hoe put away would be a key that fires while you are doing something
             // else entirely.
-            if (Keys.Pressed(JafnaConfig.HoldKey.Value)) Held.Toggle(point.y);
+            //
+            // A tap, acted on when the key comes back up (see Keys.Tap for the Alt+Tab bug that
+            // made it one). The height is still the one under the crosshair when the key went
+            // down, which is what the key pinned before, and what the panel was showing at the
+            // moment you pressed it.
+            switch (HoldTap.Read(JafnaConfig.HoldKey.Value))
+            {
+                case Keys.Edge.Down:
+                    _heightAtPress = point.y;
+                    break;
+                case Keys.Edge.Tapped:
+                    Held.Toggle(_heightAtPress);
+                    break;
+            }
 
             float radius = Reach.Earned(settings, __instance);
 

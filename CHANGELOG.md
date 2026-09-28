@@ -49,6 +49,13 @@ the hoe, its free metre and its easing, takes no stone, and says `Raising needs 
 nearby`, and the build panel says the same in place of the price. NoWorkbench and nocost lift it
 and NoBuildCost does not, as for Raise ground.
 
+**Alt+Tab no longer pins a height.** The hold key now counts when you let go of it, and only when
+you pressed it on its own with the game in front the whole time. It used to act the moment it went
+down, and switching windows starts with Left Alt going down while the game still has the focus, so
+tabbing out with a levelling tool in your hands pinned whatever height was under the crosshair and
+left it on for the rest of the session. The first scenario run caught it holding a height nobody
+had asked for. The height held is still the one under the crosshair when you pressed.
+
 In multiplayer the client that owns the zone raises the ground and sends your client the bill,
 and your client pays it out of your pack. A zone owner without this version raises nothing and
 bills nothing, so you are never charged for ground that did not move. How far out your stone
@@ -61,7 +68,8 @@ where it was raised before.
 
 Not run in a game yet. The price Raise ground resolves to, the flat top and the step at its edge,
 the middle-first rule when stone runs short, the eight metre rule, the workbench rule, the panel
-lines and messages for all three, and the bill between two machines are all untested.
+lines and messages for all three, the bill between two machines, and the hold key ignoring Alt+Tab
+are all untested.
 
 ## 1.0.0 - 20 September 2026
 
