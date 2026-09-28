@@ -166,12 +166,14 @@
 # NEEDS: singleplayer, English as the game language (the message names the item), and a strip of
 # untouched ground no steeper than 1 in 20 with no ward from 12 m ahead of you to 26 m behind, 9 m
 # wide on your right and 11 m on your left, with nothing built or growing on it. Not near a base,
-# and not where another scenario has just run: Skaft's and Varda's `flatten` and build where they
-# stand. The first run started 1.4 m from one of Varda's portals, on ground their flatten had
-# shaped. Three of its swings could not get the placement ray past something standing there
-# ("Cube (1)" twice, "Stone (21)" once), and a swing over flat ground took a stone, because ground
-# a flatten has smoothed has used up the hoe's free metre. Walk well clear of all of that before
-# starting, and run this one on its own. Eat first: there are thirteen swings at 5 stamina each.
+# and not where another scenario has just run: Skaft's and Varda's build where they stand, and
+# since Devkit 1b48353 their `flatten` really levels it. The first run started 1.4 m from one of
+# Varda's portals. Three of its swings could not get the placement ray past something standing
+# there ("Cube (1)" twice, "Stone (21)" once), and a swing over flat ground took a stone, which by
+# Fill's arithmetic means earlier terrain work had already used that point's free metre. Not the
+# flatten, though: the game cancelled every Devkit flatten that day (Player.log, "Failed to
+# deserialize TerrainOp settings", 23 times). Walk well clear of all of that before starting, and
+# run this one on its own. Eat first: there are thirteen swings at 5 stamina each.
 # No held height (the panel must not say HOLDING). Jafna's Reach settings at their defaults,
 # because the 12 metre swings rely on MaxRadius 6 and sections 6 and 3 on the hoe's own 3. A fresh
 # session is recommended but not required: log out and back in first (see THE ORDER above).
