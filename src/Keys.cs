@@ -51,11 +51,14 @@ namespace Jafna
         ///
         /// A press is spoiled, and its release does nothing, when:
         ///
-        ///  - any other key or mouse button goes down while it is held. That is Alt+Tab when the
-        ///    game sees the Tab at all, and it is every other chord with the key in it, vanilla's
-        ///    own alt-placement click included. Keys that went down in the same frame as this one
-        ///    are not counted, because some keyboard layouts send Right Alt as a Left Control and a
-        ///    Right Alt together, and counting that would make a Right Alt hold key never work.
+        ///  - any other key or mouse button goes down while it is held, or in the same frame it
+        ///    goes down. That is Alt+Tab when the game sees the Tab at all, and it is every other
+        ///    chord with the key in it. The same frame counts because at the low frame rates heavy
+        ///    terrain work brings, two keys pressed a few milliseconds apart often land in one
+        ///    frame, and an Alt+Tab or an Alt+click caught that way is still a chord. The one key
+        ///    let through in that frame is Left Control when the hold key is Right Alt or AltGr:
+        ///    layouts with an AltGr key send it as a Left Control and a Right Alt together, and
+        ///    counting that would make a Right Alt hold key never work on them.
         ///  - the game window does not have the focus when it goes down, when it comes up, or in
         ///    any frame between. This is the rule that catches Alt+Tab when Windows swallows the
         ///    Tab, which it usually does: the focus goes with it.
@@ -107,11 +110,11 @@ namespace Jafna
                     if (!ZInput.GetKeyDown(key, false)) return Edge.None;
 
                     _held = true;
-                    _spoiled = !Undisturbed();
+                    _spoiled = !Undisturbed() || OtherKeyWentDown(key, true);
                     return _spoiled ? Edge.None : Edge.Down;
                 }
 
-                if (!Application.isFocused || OtherKeyWentDown(key)) _spoiled = true;
+                if (!Application.isFocused || OtherKeyWentDown(key, false)) _spoiled = true;
 
                 // Still held, so nothing is decided. Asked as "is it down" rather than "did it come
                 // up this frame", so a press and release inside one frame still ends here a frame
@@ -191,10 +194,17 @@ namespace Jafna
         ///
         /// "Other" is by the key underneath, not the KeyCode. ZInput reads AltGr and Right Alt off
         /// the same key, so with Right Alt bound, AltGr is the same key and not a chord.
+        ///
+        /// <paramref name="pressFrame"/> is the frame <paramref name="key"/> itself went down in,
+        /// where the Left Control an AltGr key sends with its Right Alt is let through (see
+        /// <see cref="Tap"/>). Only there and only for a Right Alt key: a Left Control that goes
+        /// down later is somebody pressing Control, and with Left Alt bound it is Ctrl+Alt.
         /// </summary>
-        private static bool OtherKeyWentDown(KeyCode key)
+        private static bool OtherKeyWentDown(KeyCode key, bool pressFrame)
         {
             if (!BindOthers()) return false;
+
+            bool altGrControl = pressFrame && (key == KeyCode.RightAlt || key == KeyCode.AltGr);
 
             object own = null;
             for (int i = 0; i < _others.Length; i++)
@@ -211,6 +221,7 @@ namespace Jafna
                 {
                     if (_others[i] == key) continue;
                     if (own != null && own.Equals(_controls[i])) continue;
+                    if (altGrControl && _others[i] == KeyCode.LeftControl) continue;
 
                     if (ZInput.GetKeyDown(_others[i], false)) return true;
                 }

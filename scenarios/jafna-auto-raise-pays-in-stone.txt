@@ -21,9 +21,11 @@
 #      no further, and both the build panel and the middle of the screen say a Workbench is needed.
 #
 # HOW A SWING AIMS ABOVE THE GROUND. A scenario cannot hold Left Alt and Jafna has no console
-# command for a held height. It does not need either. Without Alt the hoe's Level ground does not
-# aim at the height under the crosshair: Player.UpdatePlacementGhost puts the ghost where the
-# crosshair is but at GetGroundHeight of your own position, and only AltPlace turns that off. So a
+# command for a held height. It does not need either. The hoe's Level ground does not aim at the
+# height under the crosshair: Player.UpdatePlacementGhost puts the ghost where the crosshair is but
+# at GetGroundHeight of your own position, and only vanilla's AltPlace turns that off. AltPlace is
+# Left Shift by default (ZInput binds it there, and so does this machine's saved binding), so it
+# is a different key from Jafna's Left Alt, and Left Alt pins that same height, your own. So a
 # swing taken standing on a mound two metres high aims two metres above the ground in front of it,
 # and a swing taken from the ground at a mound aims below the mound. `build` presses the place
 # button through the game's own path, so these are real swings with Jafna's patches and the stone
@@ -229,6 +231,16 @@
 # carried over and makes step 1's line come again. A mound below is two Raise ground on one spot,
 # as the scenario builds them.
 #
+# Take steps 2 to 8 within 20 m of a workbench. The mounds need one anyway, and so does every
+# swing that would be paid: out of its range the panel says "Filling up to that height needs a
+# Workbench nearby" where the price would be, and the swing takes no stone and comes up no more
+# than the hoe's metre, which reads as the step failing when it is the rule working.
+#
+# Left Alt pins the height the placement ghost sits at when you press it, and with Level ground
+# that is the ground you stand on, not the ground under the crosshair, unless vanilla's alt
+# placement is held (Left Shift by default, not Left Alt; see HOW A SWING AIMS ABOVE THE GROUND).
+# So the steps that pin a mound's height have you stand on the mound to do it.
+#
 #   1. Take the hoe out and select Level ground. Expected, once a session, Verbose or not:
 #      "Raising ground is priced off 'raise_v2' ... raise radius 2,00, delta 1,00, power 0,10,
 #      square False, so one swing adds 8,27 cubic metres to flat ground for Stone x2. That is
@@ -240,20 +252,25 @@
 #      and 30 to 39. Drop all but 1 Stone. Expected: "You carry 1 Stone, this swing fills the
 #      middle for 1 Stone, all of it costs N Stone", the same N. Drop the last one. Expected: "You
 #      carry 0 Stone, not enough to fill any of it, all of it costs N Stone".
-#   3. Carry 50 Stone. From low ground, aim at the top of a mound and press Left Alt. Walk to
-#      untouched low ground and swing once. Expected: the whole circle of the swing comes up to the
-#      held height in that one swing, with a step at its edge, and Stone leaves the pack. Step a
+#   3. Carry 50 Stone. Stand on the top of a mound and press Left Alt. Walk to untouched low
+#      ground and swing once. Expected: the whole circle of the swing comes up to the held height
+#      in that one swing, with a step at its edge, and Stone leaves the pack. Step a
 #      couple of metres along and swing again, overlapping the first. Expected: the step under the
 #      overlap is gone, and a new one stands at the edge of the second circle. Press Left Alt again
 #      to let go.
 #   4. Type `setkey NoBuildCost` in the console (it needs devcommands), stand on a fresh mound with
 #      10 Stone and swing at untouched ground 2 to 3 m out. Expected: before the swing the panel
 #      says "Filling up to that height is free in this world", the whole circle comes up to the
-#      mound's height, and all 10 Stone are still there. `removekey NoBuildCost` afterwards.
-#   5. Carry 10 Stone. From low ground beside a fresh mound, put the crosshair on its side about a
-#      third of the way up, half a metre or so above the ground round it, and press Left Alt. Walk
-#      to untouched ground a few metres from the mound's foot and swing. Expected: no cost line
-#      before the swing, nothing in the middle of the screen, all 10 Stone still there, and the
+#      mound's height, and all 10 Stone are still there. NoBuildCost frees the stone and still
+#      wants the workbench, as it does for Raise ground, so stay in its range for this one too.
+#      `removekey NoBuildCost` afterwards.
+#   5. Carry 10 Stone. Stand on untouched ground beside a fresh mound, aim at untouched ground,
+#      and note the number at the end of the panel's levelling line: that is the ground's height.
+#      Step onto the mound's side about a third of the way up and press Left Alt. Expected: the
+#      panel says HOLDING with a number 0.3 to 0.8 higher than the one you noted; if not, press
+#      Left Alt again to let go and try a little higher or lower. Walk to untouched ground a few
+#      metres from the mound's foot and swing. Expected: no cost line before the swing, nothing
+#      in the middle of the screen, all 10 Stone still there, and the
 #      ground eased the hoe's way: most of the way up in the middle of the circle, less further
 #      out, and no step at its edge. A build that made the flat top part of the hoe rather than
 #      part of paying lifts the whole circle to the held height and leaves a step. Press Left Alt
@@ -270,23 +287,24 @@
 #      under the crosshair and nothing round it, and three reach the points two metres out. The
 #      whole swing wants 70 cubic metres or more, so three are always short.
 #   7. Find a drop of more than nine metres onto flat ground nobody has shaped, a cliff or the side
-#      of a tall rock. Press Left Alt with the crosshair on the top, go down, carry 20 Stone, and
+#      of a tall rock. Stand on the top and press Left Alt, go down, carry 20 Stone, and
 #      swing at the flat ground at least six metres out from the foot of the drop. Expected before
 #      the swing: no cost line, and "The ground here cannot be filled that high" in the panel.
 #      Expected after it: "Too far below to raise" in the middle of the screen, all 20 Stone still
 #      there, and the middle of the swing up about a metre. Press Left Alt again to let go.
-#   8. Carry 50 Stone. From low ground, aim at the top of a fresh mound and press Left Alt. Walk to
-#      untouched low ground a few metres clear of the mound and swing twice, two metres apart, as
-#      in step 3, and press Left Alt again to let go. Place one Raise ground on the mound's top,
-#      which lifts it about a metre, put the crosshair on its new top and press Left Alt, and aim
-#      at the middle of where the two circles overlap. Expected before swinging: "Filling up to
-#      that height costs N Stone", N from 7 to 9, because every filled point has used its free
+#   8. Carry 50 Stone. Stand on the top of a fresh mound and press Left Alt. Walk to untouched low
+#      ground a few metres clear of the mound and swing twice, two metres apart, as in step 3, and
+#      press Left Alt again to let go. Place one Raise ground on the mound's top, which lifts it
+#      about a metre, stand on its new top and press Left Alt, then go back down and aim at the
+#      middle of where the two circles overlap. Expected before swinging: "Filling up to that
+#      height costs N Stone", N from 7 to 9, because every filled point has used its free
 #      metre. A build that gave a filled point its metre back, the way Raise ground does, shows 3 or
 #      less there, since the hoe would then do most of that metre for free. Press Left Alt again to
 #      let go.
 #
-#   Steps 9 to 12 are the hold key, which no step can press. Take the hoe out, select Level ground
-#   and aim at the ground, with the panel not saying HOLDING.
+#   Steps 9 to 12 are the hold key, which no step can press. Take the hoe out, select Level ground,
+#   stand still on untouched ground and aim at untouched ground, with the panel not saying HOLDING.
+#   Note the number at the end of the panel's levelling line.
 #
 #   9. Press Alt+Tab to switch to another window, wait a second, and switch back to the game.
 #      Expected: the panel does not say HOLDING. The build before this fix pinned a height here
@@ -295,7 +313,8 @@
 #      does not say HOLDING.
 #  11. Press Left Alt on its own and keep it down for a second, then let go. Expected: nothing
 #      changes while it is down, and the panel says "HOLDING height, press LeftAlt to release" the
-#      moment you let go, holding the height that was under the crosshair when you pressed.
+#      moment you let go, ending in the number you noted. Left Alt is not vanilla's alt placement
+#      (that is Left Shift), so the ghost does not move while it is down.
 #  12. Press and let go of Left Alt on its own again. Expected: HOLDING goes when you let go.
 
 

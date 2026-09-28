@@ -52,9 +52,9 @@ and NoBuildCost does not, as for Raise ground.
 **Alt+Tab no longer pins a height.** The hold key now counts when you let go of it, and only when
 you pressed it on its own with the game in front the whole time. It used to act the moment it went
 down, and switching windows starts with Left Alt going down while the game still has the focus, so
-tabbing out with a levelling tool in your hands pinned whatever height was under the crosshair and
-left it on for the rest of the session. The first scenario run caught it holding a height nobody
-had asked for. The height held is still the one under the crosshair when you pressed.
+tabbing out with a levelling tool in your hands pinned a height and left it on for the rest of the
+session. The first scenario run caught it holding a height nobody had asked for. The height held
+is still taken when you press, not when you let go.
 
 In multiplayer the client that owns the zone raises the ground and sends your client the bill,
 and your client pays it out of your pack. A zone owner without this version raises nothing and

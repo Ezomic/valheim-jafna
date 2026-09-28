@@ -73,7 +73,7 @@ or a mouse button while it is down, or let the game window lose focus before you
 nothing happens. That is for Alt+Tab. Switching windows starts with Alt going down while the game
 still has the focus, and the first version, which acted the moment the key went down, pinned a
 height whenever you tabbed out with a levelling tool in your hands, and it stayed on when you came
-back. The height held is still the one under your crosshair when you pressed.
+back. The height held is still taken when you press, not when you let go.
 
 Hold a height above the ground and swinging raises it all the way, for stone, as long as the
 height is within eight metres of where the world made the ground. The next section has the
