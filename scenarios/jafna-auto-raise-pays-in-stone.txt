@@ -170,8 +170,10 @@
 #     to 7 Stone and reads 17 or fewer, whatever it carried in.
 #   - `centre Workbench nearby yes` in section 7: a build that refuses the fill without saying so,
 #     or never refuses it, says nothing there.
-#   - `height 2.5 0 -0.9 0.3` in section 7, the middle of the swing: the hoe's free metre and no
-#     more. A build that fills there anyway reads about 0.
+#   - `height 2.5 0 1 0.15` in section 7, the middle of the swing, against that spot's own ground
+#     marked before the swing: the hoe's free metre and no more. A build that fills there anyway
+#     reads the whole way up to the mound top, 1.4 m or more, which `height 0 0 4.7 3.3` just
+#     before it makes sure of, and one that drops the hoe's own swing with the fill reads 0.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
 #     If either fails, nothing after it means anything. The height is against the mound's own
 #     ground, marked on its spot before it is built (see THE MOUNDS). A `build raise_v2` refused
@@ -198,8 +200,10 @@
 #
 # Sections 1 to 6 ran in a game on 2026-09-28, on the build before the workbench rule, with the
 # bench at 14 m and the marks where you stood, and passed every check but mound C's height (see
-# THE MOUNDS). The workbench rule, section 7, the bench at 11 m and the marks on the spots have
-# not run.
+# THE MOUNDS). The third run that day had the workbench rule, section 7, the bench at 11 m and the
+# marks on the mounds' spots, and passed every check but section 7's height, which was measured
+# against the mound top and was the check's fault, not Jafna's (see section 7). Section 7's mark on
+# the swing's own spot, and the check before its swing, have not run.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -605,8 +609,28 @@ height 3 0 1.9 0.4
 # Section 3's swing again, the hoe's own 3 m, from a mound, at untouched low ground 2.5 m out, with
 # twenty stones. With the bench in range that swing lifts its whole circle for 4 to 7 Stone. Here
 # you stand on mound D 21.5 m from the bench, outside its 20, so it may not: the twenty stones stay,
-# and the middle of the swing comes up the hoe's free metre and stops, about 0.9 m below the mound
-# top, where a paid swing lands it on 0.
+# and the middle of the swing comes up the hoe's free metre and stops, where a paid swing lands it
+# on the mound top.
+#
+# So the height is read against the swing's own spot, marked standing on it before the swing, and
+# wants the metre: +1.00. The third run in a game, on 2026-09-28, measured it against the mound
+# top instead, wanted -0.90 and read -1.75, and Jafna was right. That run's `build` line put the
+# spot 2.75 m below the mound top, not the 1.9 the check was written for: the ground there lay
+# 0.96 m below mound D's own spot three metres back, far steeper than NEEDS, and the fill it logged
+# as wanted, 42.36 cubic metres against section 3's 27.37 for the same swing, says the same. The
+# swing lifted it from 2.75 below to 1.75 below, exactly the hoe's metre, took no stone and said
+# the bench was needed. A check against the spot itself reads the metre on any slope.
+#
+# The move onto the spot is 6 m, from where mound D was built 3 m short of its middle, so the spot is
+# 3 m past that middle, and the step back of 2.5 m puts you half a metre past it, where you stood
+# before. `landed` between the two for the same reason as at every mound.
+#
+# The swing has to aim at least 1.4 m above the spot for that check to mean anything, and that is
+# checked first, from the mound top: `height 0 0` is the ground under you, which is the height the
+# swing aims at. Nearer than 1.4 a fill lands too close to the metre to tell apart, and the hoe's
+# own swing starts to fall short of its metre at the grid points round the middle, so a correct
+# build could read under 0.85. Past 8 m the spot is further down than a fill may lift at all, the
+# eight metre rule, so the swing may never ask for one and there would be no workbench message.
 #
 # The panel is read straight after the swing, with no `wait` between them, on purpose. The runner
 # goes on to the next step in the same frame a `build` presses the button, before the game has drawn
@@ -615,8 +639,11 @@ height 3 0 1.9 0.4
 # lands on, which a scenario cannot choose.
 
 wait 2
-move 3.5 0
+move 6 0
 mark
+landed
+move -2.5 0
+height 0 0 4.7 3.3
 tool Hoe mud_road_v2
 give Stone:20
 wait 1
@@ -628,7 +655,7 @@ onscreen needs a Workbench nearby yes
 wait 1
 carrying Stone 20
 centre Workbench nearby yes
-height 2.5 0 -0.9 0.3
+height 2.5 0 1 0.15
 
 
 skill Crafting back
