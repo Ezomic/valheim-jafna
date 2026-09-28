@@ -44,6 +44,20 @@
 # middle toward the spot, because from the middle, on some headings, the mound's own corner hides
 # a spot three metres out.
 #
+# Each mound is measured against the ground it is built on, not the ground you build it from: the
+# run steps onto the spot, marks it there, and steps three metres back to build. The second run in
+# a game, on 2026-09-28, marked where you stood instead, and mound C read +2.83 against a wanted
+# 1.9. The mound was fine. Its two Raise ground put 0.94 and 0.96 m on the spot, as they put 0.94
+# and 0.94 on mound B and 0.97 and 0.96 on mound A, read off the `build` lines, whose "up of the
+# spot" is the ghost's height less the ground at the spot in the frame the button was pressed.
+# The spot's own ground was simply 0.93 m above where you stood, three metres away (mound B's was
+# 0.09 below, mound A's 0.12 below). Jafna was not in it: a raise op is handed straight back to
+# vanilla by every one of its terrain patches, and it logged nothing between section 4's swing and
+# that check. That ground fell 2.7 m over the 23 m from where you start to mound C, about 12
+# percent against the 1 in 20 NEEDS asks for, and every other check passed on it. So the mark is
+# now on the spot, and the check says whether two Raise ground landed and nothing about the slope,
+# which is left to the checks that read ground away from a mound, each with its own window.
+#
 # THE WORKBENCH. Raise ground is a workbench piece: raise_v2's Piece names the workbench as its
 # m_craftingStation (read out of its asset bundle on 2026-09-28, the same station woodwall names),
 # and Player.HaveRequirements refuses a piece whose station is not within build range before it
@@ -119,7 +133,7 @@
 #   - `carrying Stone 3` in section 1: a build that priced digging like filling takes one and
 #     reads 2, in 99 fresh runs in 100 and about 1 in 3 with a leftover, which pays the small dig
 #     price in silence. `height 3 0 1.15 0.4` next to it proves the swing did dig: an untouched
-#     mound reads about 1.9.
+#     mound reads about 1.9. That height is against mound B's own ground, the last mark taken.
 #   - `carrying Stone 0` in section 5: the two stones can only go to the fill. A fill that took no
 #     stone, or never ran, leaves 2.
 #   - `centre Not enough Stone yes` in section 5: two stones buy 8.3 cubic metres and that swing's
@@ -151,8 +165,10 @@
 #   - `height 2.5 0 -0.9 0.3` in section 7, the middle of the swing: the hoe's free metre and no
 #     more. A build that fills there anyway reads about 0.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
-#     If either fails, nothing after it means anything. A `build raise_v2` refused with "Missing
-#     requirement" while the pack holds the stone is the workbench out of range, not the stone.
+#     If either fails, nothing after it means anything. The height is against the mound's own
+#     ground, marked on its spot before it is built (see THE MOUNDS). A `build raise_v2` refused
+#     with "Missing requirement" while the pack holds the stone is the workbench out of range, not
+#     the stone.
 #
 # The geometry was checked against a copy of the game's own terrain arithmetic (RaiseTerrain,
 # SmoothTerrain, ApplyToHeightmap's clamps, the collision mesh's triangles) and Jafna's
@@ -167,8 +183,15 @@
 # (section 6, and section 3's message), one that raises without stone and one that never raises.
 # The one that charges for digging is caught as the list above says. Section 7 and the bench's
 # move to 11 m behind were not in that check: they were worked out by hand on 2026-09-28, from the
-# distances in THE WORKBENCH above and the same mound, swing and price as section 3. Nothing here
-# has run in a game.
+# distances in THE WORKBENCH above and the same mound, swing and price as section 3. Nor was the
+# mark on each mound's spot: that check measured section 1's height and each fixture from the
+# ground where you stood, which is the spot's own height on level ground and within 0.15 m of it
+# on the 1 in 20 slope NEEDS allows.
+#
+# Sections 1 to 6 ran in a game on 2026-09-28, on the build before the workbench rule, with the
+# bench at 14 m and the marks where you stood, and passed every check but mound C's height (see
+# THE MOUNDS). The workbench rule, section 7, the bench at 11 m and the marks on the spots have
+# not run.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -342,8 +365,15 @@ centre (clearing the message line) no
 
 
 # ---- mound B, 3 m ahead
+#
+# Marked standing on its spot, then built from where you started. See THE MOUNDS. The waits before
+# the two moves are the game's two second teleport cooldown.
 
+wait 2
+move 3 0
 mark
+wait 2
+move -3 0
 build raise_v2 3 0
 wait 1
 build raise_v2 3 0
@@ -390,12 +420,14 @@ height 3 0 1.15 0.4
 # ---- mound A, 8 m behind where you started
 
 wait 2
-move -11 0
+move -8 0
+mark
+wait 2
+move -3 0
 clear
 give Hoe:1,Stone:4
 tool Hoe mud_road_v2
 wait 1
-mark
 build raise_v2 3 0
 wait 1
 build raise_v2 3 0
@@ -435,9 +467,11 @@ skill Crafting 0
 # ---- mound C, 20 m behind where you started
 
 wait 2
-move -15 -0.5
-give Stone:4
+move -12 -0.5
 mark
+wait 2
+move -3 0
+give Stone:4
 build raise_v2 3 0
 wait 1
 build raise_v2 3 0
@@ -538,13 +572,17 @@ height 0 -7 -1.9 0.6
 # ---- mound D, 10 m ahead and 9 m to your left of where you started, built 18 m from the bench
 #
 # Built from just inside the bench's 20 m, the way every mound is, since Raise ground needs it.
-# What section 3 left in the pack is taken out first, so the count below means what it says.
+# Its spot, where the mark is taken, is 21 m from the bench, which does not matter: a mark builds
+# nothing. What section 3 left in the pack is taken out first, so the count below means what it
+# says.
 
 wait 2
-move 15 -8.5
+move 18 -8.5
+mark
+wait 2
+move -3 0
 strip Stone
 give Stone:4
-mark
 build raise_v2 3 0
 wait 1
 build raise_v2 3 0
