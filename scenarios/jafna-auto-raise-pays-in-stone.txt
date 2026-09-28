@@ -38,6 +38,26 @@
 # a metre off its middle toward the spot, because from the middle, on some headings, the mound's
 # own corner hides a spot three metres out.
 #
+# THE WORKBENCH. Raise ground is a workbench piece: raise_v2's Piece names the workbench as its
+# m_craftingStation (read out of its asset bundle on 2026-09-28, the same station woodwall names),
+# and Player.HaveRequirements refuses a piece whose station is not within build range before it
+# looks at the stone. The first run in a game had four Stone and no bench, and every Raise ground
+# was refused with "Missing requirement", so no mound was ever built and every check after one
+# read ground nothing had raised. The bench goes 14 m behind you and 10 m to your left: within its
+# 20 m of all three places a mound is built from (17, 10 and 14 m), and clear of every swing,
+# every height read and every camera ray here. Level ground names no station, so the bench changes
+# nothing about the swings.
+#
+# THE SELECTED ENTRY. `build` leaves the hoe on the entry it built until the run ends, so after a
+# mound the hoe is still on Raise ground, which Jafna's panel says nothing about. Anything that
+# reads the panel after a mound selects Level ground again first.
+#
+# THE HELD HEIGHT. The first run had one switched on part-way through, most likely by Alt+Tab,
+# since Left Alt is the hold key and nothing in a scenario can press it. Every swing after it went
+# to the held height instead of your own, and nothing said so. So before each section's swing the
+# panel is read for HOLDING: if that check fails, the run was disturbed and nothing after it in
+# that section means anything. Stay out of other windows while it runs.
+#
 # THE PRICE. A point is charged for the part of its way up that is past its free metre. Every point
 # here starts with its whole metre, and the low ground round a mound is about 1.9 m below its top,
 # so each low point a paid swing lifts costs about 0.9 cubic metres. One stone buys 4.1 (Raise
@@ -103,7 +123,8 @@
 #   - `height 0 -7 -1.9 0.6` in section 3, 1.5 m outside the circle: the ground there is where it
 #     was, which is the step. A fill that reached past the circle reads about 0.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
-#     If either fails, nothing after it means anything.
+#     If either fails, nothing after it means anything. A `build raise_v2` refused with "Missing
+#     requirement" while the pack holds the stone is the workbench out of range, not the stone.
 #
 # The geometry was checked against a copy of the game's own terrain arithmetic (RaiseTerrain,
 # SmoothTerrain, ApplyToHeightmap's clamps, the collision mesh's triangles) and Jafna's
@@ -144,10 +165,16 @@
 #
 # NEEDS: singleplayer, English as the game language (the message names the item), and a strip of
 # untouched ground no steeper than 1 in 20 with no ward from 12 m ahead of you to 26 m behind, 9 m
-# wide on either side. Not near a base. Eat first: there are thirteen swings at 5 stamina each. No
-# held height (the panel must not say HOLDING). Jafna's Reach settings at their defaults, because
-# the 12 metre swings rely on MaxRadius 6 and sections 6 and 3 on the hoe's own 3. A fresh session
-# is recommended but not required: log out and back in first (see THE ORDER above).
+# wide on your right and 11 m on your left, with nothing built or growing on it. Not near a base,
+# and not where another scenario has just run: Skaft's and Varda's `flatten` and build where they
+# stand. The first run started 1.4 m from one of Varda's portals, on ground their flatten had
+# shaped. Three of its swings could not get the placement ray past something standing there
+# ("Cube (1)" twice, "Stone (21)" once), and a swing over flat ground took a stone, because ground
+# a flatten has smoothed has used up the hoe's free metre. Walk well clear of all of that before
+# starting, and run this one on its own. Eat first: there are thirteen swings at 5 stamina each.
+# No held height (the panel must not say HOLDING). Jafna's Reach settings at their defaults,
+# because the 12 metre swings rely on MaxRadius 6 and sections 6 and 3 on the hoe's own 3. A fresh
+# session is recommended but not required: log out and back in first (see THE ORDER above).
 #
 # It can fail with nothing wrong in three ways. A patch that crosses a zone boundary, where each
 # zone decides the continued flat for itself. A steep slope: between 5 and 7 percent a correct
@@ -157,9 +184,10 @@
 #
 # LEAVES: three mounds, one with its near side dug about a metre, two patches a metre up where the
 # stone ran out, two patches whose middle is raised to mound height with a step round it, one circle
-# six metres across raised to mound height with a step at its edge, dirt over all of it. Crafting
-# is put back. Devkit empties the pack and hands back the test kit. Jafna keeps up to a stone of
-# credit until you log out.
+# six metres across raised to mound height with a step at its edge, dirt over all of it, and the
+# workbench, left standing because taking it down drops its wood on the ground. Crafting is put
+# back. Devkit empties the pack and hands back the test kit. Jafna keeps up to a stone of credit
+# until you log out.
 #
 # MANUAL STEPS, for what no step can see. Log out and back in first, which empties what Jafna has
 # carried over and makes step 1's line come again. A mound below is two Raise ground on one spot,
@@ -228,6 +256,10 @@ clear
 give Hoe:1,Stone:4
 skill Crafting 0
 tool Hoe mud_road_v2
+
+# Raise ground's station. See THE WORKBENCH above. The wait lets its Start run, which is what puts
+# it in the list HaveRequirements searches.
+place piece_workbench -14 -10
 wait 1
 
 # Jafna's lines are in the build panel, nothing is being held, and the reach is the hoe's own
@@ -256,9 +288,11 @@ height 3 0 1.9 0.4
 
 wait 2
 move 3.5 0
+tool Hoe mud_road_v2
 skill Crafting 100
 wait 1
 onscreen up from the hoe's own yes
+onscreen HOLDING no
 
 build mud_road_v2 2.5 0
 wait 1
@@ -318,7 +352,11 @@ height 3 0 1.9 0.4
 wait 2
 move 3 0.5
 mark
+tool Hoe mud_road_v2
 skill Crafting 100
+wait 1
+onscreen Flattens yes
+onscreen HOLDING no
 build mud_road_v2 0 2.5
 wait 1
 centre Not enough Stone yes
@@ -359,8 +397,12 @@ height 3 0 1.9 0.4
 wait 2
 move 3 0.5
 mark
+tool Hoe mud_road_v2
 skill Crafting 100
 give Stone:2
+wait 1
+onscreen Flattens yes
+onscreen HOLDING no
 build mud_road_v2 0 2.5
 wait 1
 carrying Stone 0
@@ -387,6 +429,8 @@ wait 2
 move 0 -1
 mark
 give Stone:2
+onscreen Flattens yes
+onscreen HOLDING no
 build mud_road_v2 0 -2.5
 wait 1
 carrying Stone 0
@@ -413,6 +457,8 @@ wait 2
 move 12 0
 mark
 give Stone:20
+onscreen Flattens yes
+onscreen HOLDING no
 build mud_road_v2 0 -2.5
 wait 1
 centre Not enough no
