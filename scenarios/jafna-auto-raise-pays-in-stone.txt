@@ -58,6 +58,14 @@
 # now on the spot, and the check says whether two Raise ground landed and nothing about the slope,
 # which is left to the checks that read ground away from a mound, each with its own window.
 #
+# The step back is `landed`, not `wait 2`. It comes straight after the step onto the spot, with only
+# the mark between, and the game's two seconds are counted in physics steps of 0.02 s from the one
+# that ended the first move. A hundred of those add up to a hair under 2 in single precision, which
+# TeleportTo refuses, and `wait 2` reaches the hundred and first only by the slack of a frame or
+# two: at 60 frames a second it is refused about one time in fifty, and at 100 about one in two. A
+# refused step back leaves you on the spot, so the mound goes up three metres further on and every
+# section after it swings at the wrong ground. `landed` reads the cooldown itself.
+#
 # THE WORKBENCH. Raise ground is a workbench piece: raise_v2's Piece names the workbench as its
 # m_craftingStation (read out of its asset bundle on 2026-09-28, the same station woodwall names),
 # and Player.HaveRequirements refuses a piece whose station is not within build range before it
@@ -366,13 +374,14 @@ centre (clearing the message line) no
 
 # ---- mound B, 3 m ahead
 #
-# Marked standing on its spot, then built from where you started. See THE MOUNDS. The waits before
-# the two moves are the game's two second teleport cooldown.
+# Marked standing on its spot, then built from where you started. See THE MOUNDS. The wait before
+# the first move is the game's two second teleport cooldown, with the setting up in between, and
+# `landed` holds out the same cooldown before the second, which has only the mark in between.
 
 wait 2
 move 3 0
 mark
-wait 2
+landed
 move -3 0
 build raise_v2 3 0
 wait 1
@@ -422,7 +431,7 @@ height 3 0 1.15 0.4
 wait 2
 move -8 0
 mark
-wait 2
+landed
 move -3 0
 clear
 give Hoe:1,Stone:4
@@ -469,7 +478,7 @@ skill Crafting 0
 wait 2
 move -12 -0.5
 mark
-wait 2
+landed
 move -3 0
 give Stone:4
 build raise_v2 3 0
@@ -579,7 +588,7 @@ height 0 -7 -1.9 0.6
 wait 2
 move 18 -8.5
 mark
-wait 2
+landed
 move -3 0
 strip Stone
 give Stone:4
