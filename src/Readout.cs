@@ -166,6 +166,12 @@ namespace Jafna
         /// the line says the swing fills nothing, since that swing is left to the hoe's own easing
         /// and takes nothing.
         ///
+        /// Out of range of the workbench Raise ground needs, the line says that instead of a price
+        /// and nothing else, because that swing takes no stone whatever the pack holds, and a price
+        /// beside it would read as what it is about to charge. Only where a swing would need stone,
+        /// by the same silence rule as the price: a reminder on every flat swing away from a
+        /// bench would be scenery within the hour.
+        ///
         /// When the entry itself costs some of the same item, the short lines say so after what
         /// you carry. That stone is taken by vanilla after the swing and the fill leaves it alone,
         /// so without the clause "you carry 5, filling costs 5" would read as enough and the
@@ -185,7 +191,8 @@ namespace Jafna
         {
             Fill.Terms terms = Fill.Quote(
                 player, settings, point, radius,
-                out string cost, out string all, out string carried, out string own, out bool far);
+                out string cost, out string all, out string carried, out string own, out bool far,
+                out string station);
 
             string pack = "You carry " + carried + (string.IsNullOrEmpty(own) ? "" : ", the swing itself takes " + own);
             string line;
@@ -209,6 +216,9 @@ namespace Jafna
                     break;
                 case Fill.Terms.Unaffordable:
                     line = pack + ", not enough to fill any of it, all of it costs " + Num(all);
+                    break;
+                case Fill.Terms.NoStation:
+                    line = "Filling up to that height needs " + station + " nearby";
                     break;
                 default:
                     line = null;

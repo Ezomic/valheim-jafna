@@ -28,6 +28,15 @@ namespace Jafna
     /// cost divided by that volume, per item. Both halves are asset data, which is why neither is
     /// written down here and why the resolved price is logged once a session.
     ///
+    /// So is the rule for where it may be paid. On 2026-09-28 Robbin decided that raising ground
+    /// with stone needs a workbench in range, the same as raising it by hand: Raise ground's Piece
+    /// names the workbench as its <c>m_craftingStation</c>, and vanilla will not swing it outside
+    /// that station's build range. Until then a flattening swing could raise ground for stone in
+    /// the middle of nowhere, which made it a Raise ground that worked where Raise ground itself
+    /// refuses. The station comes off the same entry as the price, and out of its range a swing
+    /// that would need stone is left entirely to the hoe, free metre, easing and all, costs
+    /// nothing, and says why (see <see cref="NearStation"/>).
+    ///
     /// Whether a swing needs stone is a question about each point under it: is the height further
     /// above that point than the hoe could ever bring it for free? The free part is the point's
     /// room, the metre less whatever earlier swings have used of it. A swing where every point is
@@ -102,8 +111,9 @@ namespace Jafna
     ///
     /// Where the work happens is the part that took the most thought.
     ///
-    ///  - The swinging client decides whether the swing needs stone and how much of it it can pay
-    ///    for, because the stone is in its pack and nowhere else. It measures the swing from its
+    ///  - The swinging client decides whether the swing needs stone, whether it is standing near
+    ///    the station that paying needs, and how much of it it can pay for, because the stone is
+    ///    in its pack and where it stands is known to it alone. It measures the swing from its
     ///    own copy of the zone, which is the same data the owner holds, works out how far from the
     ///    middle of the swing its stone reaches, and sends that distance behind the reach in the
     ///    package Reach.cs already appends.
@@ -276,6 +286,14 @@ namespace Jafna
             /// </summary>
             internal GlobalKeys FreeKey;
 
+            /// <summary>
+            /// The crafting station the entry needs within build range, by its <c>m_name</c>
+            /// ($piece_workbench on the hoe's Raise ground), or null when it names none. A name
+            /// rather than the component for the same reason as FreeKey, and because the name is
+            /// all <c>CraftingStation.HaveBuildStationInRange</c> asks for.
+            /// </summary>
+            internal string Station;
+
             internal bool IsFree()
             {
                 return Items.Length == 0
@@ -352,7 +370,8 @@ namespace Jafna
                     Volume = volume,
                     Items = items.ToArray(),
                     PerCubicMetre = rates.ToArray(),
-                    FreeKey = piece.FreeBuildKey()
+                    FreeKey = piece.FreeBuildKey(),
+                    Station = piece.m_craftingStation != null ? piece.m_craftingStation.m_name : null
                 };
 
                 string rate = "";
@@ -368,7 +387,10 @@ namespace Jafna
                     + ", power " + s.m_raisePower.ToString("0.00") + ", square " + s.m_square
                     + ", so one swing adds " + volume.ToString("0.00") + " cubic metres to flat ground for "
                     + (cost.Length > 0 ? cost : "nothing") + ". That is "
-                    + (rate.Length > 0 ? rate : "free") + " per cubic metre.");
+                    + (rate.Length > 0 ? rate : "free") + " per cubic metre, "
+                    + (string.IsNullOrEmpty(_price.Station)
+                        ? "with no station to stand near."
+                        : "within build range of a " + _price.Station + "."));
 
                 return _price;
             }
@@ -440,6 +462,55 @@ namespace Jafna
         {
             Heightmap hmap = Heightmap.FindHeightmap(point);
             return hmap == null ? 1f : hmap.m_scale;
+        }
+
+        // -- The workbench -----------------------------------------------------------------------
+
+        /// <summary>
+        /// Whether the player stands where vanilla would let them swing the Raise ground the price
+        /// was read from. Robbin's call on 2026-09-28: raising ground with stone follows the same
+        /// rule as raising it by hand.
+        ///
+        /// Vanilla's rule, read off <c>Player</c> with ilspycmd. The place button only swings a
+        /// piece when <c>m_noPlacementCost</c> is set or <c>HaveRequirements(piece, CanBuild)</c>
+        /// passes, and for a piece that names a crafting station that asks
+        /// <c>CraftingStation.HaveBuildStationInRange(station m_name, player position)</c> and lets
+        /// <c>GlobalKeys.NoWorkbench</c> excuse it. The station test is before the free-build key,
+        /// so NoBuildCost makes Raise ground free and still wants the workbench, and that holds
+        /// here too. The range is measured flat from where the player stands, not from the ghost:
+        /// the helper puts the point at the station's own height first. A workbench's own
+        /// <c>m_rangeBuild</c> is 20 metres, read off a Devkit rip, and each extension adds its
+        /// <c>m_extraRangePerLevel</c> of 4, which the helper counts on its own.
+        ///
+        /// The station comes off the same entry the price does rather than being written here, so
+        /// a mod that moves Raise ground to another station moves this with it.
+        ///
+        /// Only the swinger can ask, because only the swinger knows where the swinger stands; the
+        /// owner is handed a position for the swing and nothing about who is where. So the answer
+        /// is the swinger's, and a refusal is a swing that never asks for a fill at all (see
+        /// <see cref="Plan"/>): the owner raises only when a reach above zero arrives, and none
+        /// does.
+        /// </summary>
+        private static bool NearStation(Player player, Price price)
+        {
+            if (string.IsNullOrEmpty(price.Station)) return true;
+            if (player.NoCostCheat()) return true;
+            if (ZoneSystem.instance != null && ZoneSystem.instance.GetGlobalKey(GlobalKeys.NoWorkbench)) return true;
+
+            return CraftingStation.HaveBuildStationInRange(price.Station, player.transform.position) != null;
+        }
+
+        /// <summary>
+        /// The station a price needs, with its article, in the player's language: "a Workbench".
+        /// Localised here rather than left as a $ token for the panel to translate, because the
+        /// article depends on the word, and "a Artisan table" is what a token would get.
+        /// </summary>
+        private static string StationPhrase(Price price)
+        {
+            string name = Localization.instance != null ? Localization.instance.Localize(price.Station) : price.Station;
+            if (string.IsNullOrEmpty(name)) return "a crafting station";
+
+            return ("AEIOUaeiou".IndexOf(name[0]) >= 0 ? "an " : "a ") + name;
         }
 
         // -- The ledger ------------------------------------------------------------------------
@@ -822,7 +893,8 @@ namespace Jafna
         /// every point below the height nearer than this is lifted onto it and every one further
         /// out is left to the hoe's own easing. <see cref="Everywhere"/> when the pack pays for all
         /// of it, and -1 when the swing is not asking for a fill at all: when it does not need stone,
-        /// and when the pack cannot pay for even the middle.
+        /// when the player is out of range of the station Raise ground needs (see
+        /// <see cref="NearStation"/>), and when the pack cannot pay for even the middle.
         ///
         /// Decided once per swing and then handed to every zone the swing reaches, because
         /// ApplyOperation is called once per zone and the distance has to be the same in all of
@@ -869,6 +941,26 @@ namespace Jafna
             if (need <= MinVolume)
             {
                 if (beyond > 0) player.Message(MessageHud.MessageType.Center, "Too far below to raise");
+                return -1f;
+            }
+
+            // Out of the station's range the swing never asks for a fill, so no zone is asked to
+            // raise anything and no bill can come back: everything below that a fill sets up,
+            // the rate, the reservation and the time a bill is accepted from, is left as it was.
+            // Said at the swing as well as on the panel, as vanilla's own Raise ground does with
+            // "Missing requirement", and for the same reason as the two messages below: ground that
+            // stops short with nothing to say why is the complaint this feature began with.
+            if (!NearStation(player, price))
+            {
+                player.Message(MessageHud.MessageType.Center, "Raising needs " + StationPhrase(price) + " nearby");
+
+                if (JafnaConfig.Verbose.Value)
+                {
+                    JafnaPlugin.Log.LogInfo(
+                        "Fill wanted " + need.ToString("0.00") + " cubic metres, but no " + price.Station
+                        + " is in build range of where you stand, so the swing is the hoe's alone.");
+                }
+
                 return -1f;
             }
 
@@ -1286,7 +1378,13 @@ namespace Jafna
             ShortCovered,
 
             /// <summary>Short of stone: this swing cannot pay for even the middle, so it fills nothing.</summary>
-            Unaffordable
+            Unaffordable,
+
+            /// <summary>
+            /// The swing would need stone, and the station Raise ground needs is not in range of
+            /// where the player stands, so it fills nothing and is the hoe's alone.
+            /// </summary>
+            NoStation
         }
 
         /// <summary>Points recorded for the readout, so pricing a swing never disturbs a swing's own list.</summary>
@@ -1300,7 +1398,8 @@ namespace Jafna
         /// <paramref name="own"/> what the entry itself takes of the same items, which the short
         /// lines need and the others do not. <paramref name="far"/> is whether any of the swing is
         /// too far below the height for the game to ever allow (see <see cref="Measure"/>), which
-        /// can be true whatever the terms, including None.
+        /// can be true whatever the terms, including None. <paramref name="station"/> names the
+        /// station that is out of range, "a Workbench", and is set only with NoStation.
         ///
         /// Priced exactly as the swing will be billed: the same test for whether it needs stone,
         /// the same flat top, the same cutoff <see cref="Plan"/> will send, worked out by the same
@@ -1313,13 +1412,15 @@ namespace Jafna
         /// </summary>
         internal static Terms Quote(
             Player player, TerrainOp.Settings settings, Vector3 point, float radius,
-            out string cost, out string all, out string carried, out string own, out bool far)
+            out string cost, out string all, out string carried, out string own, out bool far,
+            out string station)
         {
             cost = null;
             all = null;
             carried = null;
             own = null;
             far = false;
+            station = null;
 
             if (!JafnaConfig.AutoRaise.Value || player == null || !Applies(settings)) return Terms.None;
 
@@ -1336,6 +1437,14 @@ namespace Jafna
             // Plan's test for a swing that needs stone, so the panel is silent over exactly the
             // swings the hoe does alone, and prices the flat top over the rest.
             if (need <= MinVolume) return Terms.None;
+
+            // Plan's station test, and before the free one for the reason vanilla puts it there:
+            // NoBuildCost makes Raise ground free and still wants the workbench.
+            if (!NearStation(player, price))
+            {
+                station = StationPhrase(price);
+                return Terms.NoStation;
+            }
 
             if (price.IsFree()) return Terms.Free;
 

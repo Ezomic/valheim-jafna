@@ -40,7 +40,8 @@ still start a new platform at a new height: stand clear of the old one and swing
 - **Low ground is raised with stone.** When a swing wants the ground higher than the hoe can
   lift it, that swing lifts its whole circle straight to your height and your pack pays for
   what the hoe would not have done, at the rate the hoe's own Raise ground charges. It leaves a
-  step at the edge of the circle until you swing next to it.
+  step at the edge of the circle until you swing next to it. Like Raise ground, it needs a
+  workbench nearby.
 - **Reach grows with Crafting.** Nothing below about Crafting 25, growing to a 6 metre radius
   at Crafting 60 against the hoe's own 3. Never a discount: a swing costs exactly the stamina
   vanilla charges.
@@ -131,6 +132,17 @@ The price is the hoe's own. Jafna finds the Raise ground entry on the hoe, takes
 and works out how much ground one Raise ground swing adds to flat ground. Filling costs stone at
 that rate per cubic metre. Both numbers come from the running game and go in the log once a
 session, so if another mod changes what Raise ground costs, filling follows it.
+
+So does where you may do it. Raising with stone needs a workbench nearby, because Raise ground
+does: its entry names the workbench, and the game will not let you swing it further from one than
+the workbench's build range, 20 metres for a bench with no extensions, measured from where you
+stand. Filling reads the station off the same entry and follows the same rule. Out of range, a
+swing that would need stone is the hoe's alone: the ground comes up its free metre, eased the
+hoe's way, and no stone is taken. The panel says `Filling up to that height needs a Workbench
+nearby` where the price would be, and the swing puts `Raising needs a Workbench nearby` in the
+middle of the screen. A world with NoWorkbench set lifts the rule and so does the nocost command,
+both as they do for Raise ground. NoBuildCost does not: Raise ground is free there and still
+wants the workbench.
 
 On a slope Raise ground adds less for the same stone, so there filling is cheaper than doing it
 by hand. Alternating Raise ground and Level ground by hand can still beat it. Every Raise ground
@@ -251,6 +263,10 @@ paid swing has one flat top and not a flat half beside an eased one. Paying afte
 purpose: an owner without this version raises nothing and sends no bill, so you pay nothing for
 ground that never moved.
 
+Whether you are near a workbench is also your client's answer, since only your client knows
+where you stand. When you are not, your client sends no distance at all, so the owner is never
+asked to raise anything for that swing and no bill can come back.
+
 When somebody else owns the zone, the stone for a swing leaves your pack once their machine
 answers. Two quick swings can therefore be billed for more stone than you held. The difference
 is owed, and it comes out of the stone you carry at your next fill.
@@ -297,7 +313,8 @@ Raising low ground for stone has not been in a game at all yet. That covers the 
 ground resolves to, a paid swing's whole circle landing on the height with a step at its edge,
 the stone it takes and each point's free metre coming off the bill, the middle coming up first
 when the stone runs short and the panel's price for it, ground past the eight metre limit being
-left alone and said so, and the bill travelling between two machines.
+left alone and said so, the workbench rule and its two messages, and the bill travelling between
+two machines.
 
 ## Bugs and ideas
 

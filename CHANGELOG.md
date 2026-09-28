@@ -42,17 +42,26 @@ The build panel says what a swing will cost before you take it, and that is what
 of stone it says what you carry, what this swing fills and takes for it, and what all of it would
 cost, or that it fills none of it when your stone does not reach even the middle.
 
+**Raising with stone needs a workbench nearby**, the rule vanilla's Raise ground follows. The
+station is read off the same Raise ground entry as the price, so on the hoe it is the workbench,
+within its build range of where you stand. Out of range, a swing that would need stone is left to
+the hoe, its free metre and its easing, takes no stone, and says `Raising needs a Workbench
+nearby`, and the build panel says the same in place of the price. NoWorkbench and nocost lift it
+and NoBuildCost does not, as for Raise ground.
+
 In multiplayer the client that owns the zone raises the ground and sends your client the bill,
 and your client pays it out of your pack. A zone owner without this version raises nothing and
 bills nothing, so you are never charged for ground that did not move. How far out your stone
 reaches rides at the end of the message Jafna already appends, where 1.0.0 stops reading.
+Whether you stand near a workbench is your client's answer too, and a swing it turns down never
+asks the owner to raise anything.
 
 Lowering has not changed. Ground well above the target still stops after about a metre, or two
 where it was raised before.
 
 Not run in a game yet. The price Raise ground resolves to, the flat top and the step at its edge,
-the middle-first rule when stone runs short, the eight metre rule, the panel lines and messages for
-both, and the bill between two machines are all untested.
+the middle-first rule when stone runs short, the eight metre rule, the workbench rule, the panel
+lines and messages for all three, and the bill between two machines are all untested.
 
 ## 1.0.0 - 20 September 2026
 

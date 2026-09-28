@@ -1,6 +1,6 @@
 # Jafna: a flattening swing raises low ground for stone, and nothing else costs any.
 #
-# Six claims:
+# Seven claims:
 #
 #   1. Digging is free. A swing that pulls a mound down further than the hoe's one metre takes no
 #      stone.
@@ -16,6 +16,9 @@
 #   6. The stone pays for each point's whole way up past its free metre, not only for the part the
 #      hoe's own swing would have been cut short on: at the hoe's own reach two stones pay for no
 #      more than the middle of a swing, and both leave the pack.
+#   7. Raising with stone needs a workbench in range, as Raise ground does. Out of its range a
+#      swing that would be paid takes no stone, the ground comes up the hoe's own free metre and
+#      no further, and both the build panel and the middle of the screen say a Workbench is needed.
 #
 # HOW A SWING AIMS ABOVE THE GROUND. A scenario cannot hold Left Alt and Jafna has no console
 # command for a held height. It does not need either. Without Alt the hoe's Level ground does not
@@ -33,20 +36,28 @@
 # THE MOUNDS. Two Raise ground on one spot. raise_v2 was read out of the game files: radius 2, lift
 # 1, power 0.1, Stone x2. That leaves a block about three metres square and 1.8 to 2 metres high
 # that drops to the old ground within a metre. Mound B is 3 m ahead of where you start, mound A
-# is 8 m behind you and mound C 20 m behind you. Sections 4 and 3 swing from either side of mound
-# A, and sections 5 and 6 from either side of mound C. Swings from a mound are taken standing half
-# a metre off its middle toward the spot, because from the middle, on some headings, the mound's
-# own corner hides a spot three metres out.
+# is 8 m behind you, mound C 20 m behind you, and mound D 10 m ahead and 9 m to your left.
+# Sections 4 and 3 swing from either side of mound A, sections 5 and 6 from either side of mound
+# C, and section 7 from mound D. Swings from a mound are taken standing half a metre off its
+# middle toward the spot, because from the middle, on some headings, the mound's own corner hides
+# a spot three metres out.
 #
 # THE WORKBENCH. Raise ground is a workbench piece: raise_v2's Piece names the workbench as its
 # m_craftingStation (read out of its asset bundle on 2026-09-28, the same station woodwall names),
 # and Player.HaveRequirements refuses a piece whose station is not within build range before it
 # looks at the stone. The first run in a game had four Stone and no bench, and every Raise ground
 # was refused with "Missing requirement", so no mound was ever built and every check after one
-# read ground nothing had raised. The bench goes 14 m behind you and 10 m to your left: within its
-# 20 m of all three places a mound is built from (17, 10 and 14 m), and clear of every swing,
-# every height read and every camera ray here. Level ground names no station, so the bench changes
-# nothing about the swings.
+# read ground nothing had raised.
+#
+# Since 2026-09-28 a fill needs the same bench in range of where you stand, so the bench has to
+# reach every swing that pays or runs short as well as every mound. It stands 11 m behind you and
+# 10 m to your left. Its range is 20 m (m_rangeBuild off a Devkit rip of piece_workbench, with no
+# extensions), measured flat from the bench to you. That covers the four places a mound is built
+# from (15, 10, 16 and 18 m) and every place sections 1 to 6 swing from, the farthest being
+# section 4's first swing on mound B at 17.6 m, and leaves out section 7's swing on mound D at
+# 21.5 m. Until section 7 the bench stood 14 m behind you, which put that swing on mound B 20.2 m
+# from it: just out of range, so section 4 would have got the workbench message and not "Not
+# enough Stone". It is clear of every swing, every height read and every camera ray here.
 #
 # THE SELECTED ENTRY. `build` leaves the hoe on the entry it built until the run ends, so after a
 # mound the hoe is still on Raise ground, which Jafna's panel says nothing about. Anything that
@@ -72,7 +83,7 @@
 # Sections 4, 2 and 1 come first because they expect no stone to move. The first swing is one no
 # stone can pay for: from mound B, with an empty pack and Crafting at 100 so it covers 12 metres,
 # its flat top wants about 70 to 115 cubic metres. It runs short, and that is claim 4's message.
-# Claims 2 and 1 follow, then claim 4's height, then claims 5, 6 and 3.
+# Claims 2 and 1 follow, then claim 4's height, then claims 5, 6, 3 and 7.
 #
 # Claims 5 and 6 each give two stones to a swing they cannot pay for in full, and check that both
 # are gone. A short swing stops at a whole ring of points, so it can leave most of a stone paid
@@ -81,6 +92,10 @@
 # in. That leftover is why claim 3 does not check how much stone its swing takes. Claim 3's swing
 # is also the proof that claims 5 and 6 left no debt: it needs about 4 to 7 Stone and is given 20,
 # so a correct build is never short there.
+#
+# Section 7 comes last. On a correct build it takes no stone at all, so nothing the others left paid
+# for can move its count. It needs a mound of its own at the edge of the bench's range, built from
+# just inside it and swung from just outside.
 #
 # Claim 4's height and claim 3 are on opposite sides of mound A on purpose. A swing that runs out
 # leaves ground a metre up and flat, and the next swing on that spot continues that flat instead of
@@ -122,6 +137,14 @@
 #     `height 0 -2.5 0 0.1` catches most of the time as well.
 #   - `height 0 -7 -1.9 0.6` in section 3, 1.5 m outside the circle: the ground there is where it
 #     was, which is the step. A fill that reached past the circle reads about 0.
+#   - `onscreen needs a Workbench nearby yes` in section 7, read in the frame of the swing: a build
+#     that ignores the bench prices that swing instead, "Filling up to that height costs N Stone".
+#   - `carrying Stone 20` in section 7: a build that ignores the bench lifts the whole circle for 4
+#     to 7 Stone and reads 17 or fewer, whatever it carried in.
+#   - `centre Workbench nearby yes` in section 7: a build that refuses the fill without saying so,
+#     or never refuses it, says nothing there.
+#   - `height 2.5 0 -0.9 0.3` in section 7, the middle of the swing: the hoe's free metre and no
+#     more. A build that fills there anyway reads about 0.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
 #     If either fails, nothing after it means anything. A `build raise_v2` refused with "Missing
 #     requirement" while the pack holds the stone is the workbench out of range, not the stone.
@@ -137,8 +160,10 @@
 # hoe's metre cut short (section 6), one that spreads short stone evenly (section 5's middle), one
 # that raises the middle and bills the whole swing and one that raises and bills the whole swing
 # (section 6, and section 3's message), one that raises without stone and one that never raises.
-# The one that charges for digging is caught as the list above says. Nothing here has run in a
-# game.
+# The one that charges for digging is caught as the list above says. Section 7 and the bench's
+# move to 11 m behind were not in that check: they were worked out by hand on 2026-09-28, from the
+# distances in THE WORKBENCH above and the same mound, swing and price as section 3. Nothing here
+# has run in a game.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -161,19 +186,22 @@
 #   - The eight metre rule, its message and its panel line: nothing aims more than eight metres
 #     above the ground, which needs a held height or a drop no mound can make. Manual step 7.
 #   - The build panel for a spot, because the panel follows where the camera looks and `build`
-#     turns the look back after each swing. Manual steps 2 and 6.
+#     turns the look back after each swing. Manual steps 2 and 6. The one exception is the panel
+#     as it stood while a swing was aimed, which an `onscreen` straight after the `build` still
+#     reads; section 7 uses that, and it cannot price a spot without swinging at it.
 #
-# NEEDS: singleplayer, English as the game language (the message names the item), and a strip of
-# untouched ground no steeper than 1 in 20 with no ward from 12 m ahead of you to 26 m behind, 9 m
-# wide on your right and 11 m on your left, with nothing built or growing on it. Not near a base,
-# and not where another scenario has just run: Skaft's and Varda's build where they stand, and
-# since Devkit 1b48353 their `flatten` really levels it. The first run started 1.4 m from one of
-# Varda's portals. Three of its swings could not get the placement ray past something standing
-# there ("Cube (1)" twice, "Stone (21)" once), and a swing over flat ground took a stone, which by
-# Fill's arithmetic means earlier terrain work had already used that point's free metre. Not the
-# flatten, though: the game cancelled every Devkit flatten that day (Player.log, "Failed to
-# deserialize TerrainOp settings", 23 times). Walk well clear of all of that before starting, and
-# run this one on its own. Eat first: there are thirteen swings at 5 stamina each.
+# NEEDS: singleplayer, English as the game language (the messages name the item and the bench),
+# no NoWorkbench key set in the world, no nocost, and a strip of untouched ground no steeper than 1
+# in 20 with no ward from 16 m ahead of you to 26 m behind, 9 m wide on your right and 12 m on
+# your left, with nothing built or growing on it and no other workbench within 20 m of it. Not
+# near a base, and not where another scenario has just run: Skaft's and Varda's build where they
+# stand, and since Devkit 1b48353 their `flatten` really levels it. The first run started 1.4 m
+# from one of Varda's portals. Three of its swings could not get the placement ray past something
+# standing there ("Cube (1)" twice, "Stone (21)" once), and a swing over flat ground took a stone,
+# which by Fill's arithmetic means earlier terrain work had already used that point's free metre.
+# Not the flatten, though: the game cancelled every Devkit flatten that day (Player.log, "Failed
+# to deserialize TerrainOp settings", 23 times). Walk well clear of all of that before starting,
+# and run this one on its own. Eat first: there are sixteen swings at 5 stamina each.
 # No held height (the panel must not say HOLDING). Jafna's Reach settings at their defaults,
 # because the 12 metre swings rely on MaxRadius 6 and sections 6 and 3 on the hoe's own 3. A fresh
 # session is recommended but not required: log out and back in first (see THE ORDER above).
@@ -184,12 +212,13 @@
 # read ground far from where you marked it. And section 6's stone count, as above, about one run
 # in a thousand.
 #
-# LEAVES: three mounds, one with its near side dug about a metre, two patches a metre up where the
+# LEAVES: four mounds, one with its near side dug about a metre, two patches a metre up where the
 # stone ran out, two patches whose middle is raised to mound height with a step round it, one circle
-# six metres across raised to mound height with a step at its edge, dirt over all of it, and the
-# workbench, left standing because taking it down drops its wood on the ground. Crafting is put
-# back. Devkit empties the pack and hands back the test kit. Jafna keeps up to a stone of credit
-# until you log out.
+# six metres across raised to mound height with a step at its edge, one patch a metre up in front of
+# the fourth mound where the bench was out of range, dirt over all of it, and the workbench, left
+# standing because taking it down drops its wood on the ground. Crafting is put back. Devkit
+# empties the pack and hands back the test kit. Jafna keeps up to a stone of credit until you log
+# out.
 #
 # MANUAL STEPS, for what no step can see. Log out and back in first, which empties what Jafna has
 # carried over and makes step 1's line come again. A mound below is two Raise ground on one spot,
@@ -198,7 +227,7 @@
 #   1. Take the hoe out and select Level ground. Expected, once a session, Verbose or not:
 #      "Raising ground is priced off 'raise_v2' ... raise radius 2,00, delta 1,00, power 0,10,
 #      square False, so one swing adds 8,27 cubic metres to flat ground for Stone x2. That is
-#      0,242 $item_stone per cubic metre."
+#      0,242 $item_stone per cubic metre, within build range of a $piece_workbench."
 #   2. Stand on a fresh mound with 50 Stone, half a metre off its middle, and aim at untouched
 #      ground 2.5 m further out. Expected: a panel line "Filling up to that height costs N Stone",
 #      N from 4 to 7 at the hoe's own reach and from 18 to 27 with Crafting at 60 or more. The
@@ -259,9 +288,9 @@ give Hoe:1,Stone:4
 skill Crafting 0
 tool Hoe mud_road_v2
 
-# Raise ground's station. See THE WORKBENCH above. The wait lets its Start run, which is what puts
-# it in the list HaveRequirements searches.
-place piece_workbench -14 -10
+# Raise ground's station, and a fill's. See THE WORKBENCH above. The wait lets its Start run, which
+# is what puts it in the list HaveRequirements searches, and the one Jafna's fill asks as well.
+place piece_workbench -11 -10
 wait 1
 
 # Jafna's lines are in the build panel, nothing is being held, and the reach is the hoe's own
@@ -467,6 +496,55 @@ centre Not enough no
 height 0 -2.5 0 0.1
 height 0 -4 0 0.1
 height 0 -7 -1.9 0.6
+
+
+# ---- mound D, 10 m ahead and 9 m to your left of where you started, built 18 m from the bench
+#
+# Built from just inside the bench's 20 m, the way every mound is, since Raise ground needs it.
+# What section 3 left in the pack is taken out first, so the count below means what it says.
+
+wait 2
+move 15 -8.5
+strip Stone
+give Stone:4
+mark
+build raise_v2 3 0
+wait 1
+build raise_v2 3 0
+wait 1
+carrying Stone 0
+height 3 0 1.9 0.4
+
+
+# ---- 7: out of the bench's range, a swing that would be paid is the hoe's alone
+#
+# Section 3's swing again, the hoe's own 3 m, from a mound, at untouched low ground 2.5 m out, with
+# twenty stones. With the bench in range that swing lifts its whole circle for 4 to 7 Stone. Here
+# you stand on mound D 21.5 m from the bench, outside its 20, so it may not: the twenty stones stay,
+# and the middle of the swing comes up the hoe's free metre and stops, about 0.9 m below the mound
+# top, where a paid swing lands it on 0.
+#
+# The panel is read straight after the swing, with no `wait` between them, on purpose. The runner
+# goes on to the next step in the same frame a `build` presses the button, before the game has drawn
+# anything from the look `build` turns back afterwards, so the panel then still holds what it said
+# while the swing was aimed at its spot. After a `wait` it says whatever your own resting look
+# lands on, which a scenario cannot choose.
+
+wait 2
+move 3.5 0
+mark
+tool Hoe mud_road_v2
+give Stone:20
+wait 1
+onscreen Flattens yes
+onscreen HOLDING no
+centre (clearing the message line) no
+build mud_road_v2 2.5 0
+onscreen needs a Workbench nearby yes
+wait 1
+carrying Stone 20
+centre Workbench nearby yes
+height 2.5 0 -0.9 0.3
 
 
 skill Crafting back
