@@ -55,8 +55,19 @@
 # vanilla by every one of its terrain patches, and it logged nothing between section 4's swing and
 # that check. That ground fell 2.7 m over the 23 m from where you start to mound C, about 12
 # percent against the 1 in 20 NEEDS asks for, and every other check passed on it. So the mark is
-# now on the spot, and the check says whether two Raise ground landed and nothing about the slope,
-# which is left to the checks that read ground away from a mound, each with its own window.
+# now on the spot, and the check says whether two Raise ground landed and nothing about the slope.
+#
+# The same goes for every height here that reads ground away from a mound. Section 7's spot, section
+# 4's spot 2.5 m past its swing and section 3's point outside its circle are each marked standing on
+# them before the swing, and the check reads how far they moved. The last two were read against the
+# mound top until the fourth run in a game, on 2026-09-29, on the guess that the ground round a
+# mound lies 1.9 m below its top, and that run had ground falling about 12 in 100 across mound A.
+# Before each of those swings a gate reads the ground under you, which is the height the swing aims
+# at, against the marked point, and refuses when it is too close for the check to tell a right
+# swing from a wrong one, so a slope too steep for a check says so there instead of reading as a
+# Jafna fault. The heights still read against the ground under you (section 5's middle, section 3's
+# middle and halfway point) are on ground the swing fills to that very height, so no slope moves
+# them.
 #
 # The step back is `landed`, not `wait 2`. It comes straight after the step onto the spot, with only
 # the mark between, and the game's two seconds are counted in physics steps of 0.02 s from the one
@@ -132,9 +143,10 @@
 #
 #   - `centre Not enough Stone yes` after the first swing, and again in section 4's second half:
 #     a build that raises without stone, or never raises, says nothing.
-#   - `height 0 5 -0.9 0.38` in section 4: that swing ran out, so 2.5 m from its middle the ground
-#     stopped at the free metre, about -0.9. A build that raised it anyway lifts the whole circle
-#     and reads about 0.
+#   - `height 0 5 0.8 0.3` in section 4, against that spot's own ground marked before the swing:
+#     that swing ran out, so 2.5 m from its middle the ground came up the hoe's metre or a little
+#     less, 0.59 to 1.00. A build that raised it anyway lifts the whole circle to the height, 1.2 m
+#     or more, which `height 0 0 4.6 3.4` just before it makes sure of.
 #   - `centre Not enough no` in section 2, with nothing in the pack: nothing under that swing is
 #     further below your feet than the hoe's metre, so a build that asks for stone here is asking
 #     for ground the hoe covers alone.
@@ -161,9 +173,13 @@
 #     So does a build that raised and billed the whole swing.
 #   - `height 0 -4 0 0.1` in section 3, halfway to the edge of the circle: one paid swing lands it
 #     on the height. The eased fill reads about -1.0 there, and about -0.3 in the middle, which
-#     `height 0 -2.5 0 0.1` catches most of the time as well.
-#   - `height 0 -7 -1.9 0.6` in section 3, 1.5 m outside the circle: the ground there is where it
-#     was, which is the step. A fill that reached past the circle reads about 0.
+#     `height 0 -2.5 0 0.1` catches most of the time as well. Both are against the ground under you
+#     marked after the swing, which a correct build leaves within 0.06 of the height it aimed at.
+#   - `height 0 -7.5 0 0.1` in section 3, 2 m outside the circle, against that point's own ground
+#     marked before the swing: the ground there is where it was, which is the step. A fill that
+#     reached it lifts it to the height, half a metre or more, which `height 0 0 4.25 3.75` before
+#     the swing makes sure of. In the copy of the game's arithmetic a fill reaching 1.5 m past the
+#     circle was caught here in about 6 runs in 10, and one reaching 2.5 m past it in 999 in 1000.
 #   - `onscreen needs a Workbench nearby yes` in section 7, read in the frame of the swing: a build
 #     that ignores the bench prices that swing instead, "Filling up to that height costs N Stone".
 #   - `carrying Stone 20` in section 7: a build that ignores the bench lifts the whole circle for 4
@@ -198,12 +214,27 @@
 # ground where you stood, which is the spot's own height on level ground and within 0.15 m of it
 # on the 1 in 20 slope NEEDS allows.
 #
+# Checked again on 2026-09-29, with the marks on the mounds' spots and sections 4 and 3 reading
+# their own ground: 2000 runs fresh and 2000 with a leftover, on slopes up to 5 percent. A correct
+# build failed 1 and 2, at section 6's stone count as before, and every build above failed the same
+# checks as often as it did before, give or take a few runs in 2000. On slopes of 5 to 15 percent
+# the old two checks failed a correct build in 35 runs in 100 by themselves; the new ones never did
+# past their gates, which refused 3 or 4 in 100. Nor did they on slopes up to 1 in 5, or on ground
+# with three swells laid over the slope, each up to 0.3 m high and 15 to 45 m long. The middle and
+# halfway points against the mark after the swing failed in the same few runs steeper than 1 in 8
+# as they did against the mark before it. Section 7 was not in that check either.
+#
 # Sections 1 to 6 ran in a game on 2026-09-28, on the build before the workbench rule, with the
 # bench at 14 m and the marks where you stood, and passed every check but mound C's height (see
 # THE MOUNDS). The third run that day had the workbench rule, section 7, the bench at 11 m and the
 # marks on the mounds' spots, and passed every check but section 7's height, which was measured
-# against the mound top and was the check's fault, not Jafna's (see section 7). Section 7's mark on
-# the swing's own spot, and the check before its swing, have not run.
+# against the mound top and was the check's fault, not Jafna's (see section 7). The fourth, on
+# 2026-09-29, had section 7 reading its own spot, and it passed. It failed 4 of 152, none of them
+# Jafna's: section 4's second swing never happened, because a rock took the placement ray, so its
+# message and its height failed with it, and section 3's outside point sat 0.95 m lower than the
+# check guessed (see sections 4 and 3). Jafna logged every swing that did happen as it should.
+# The marks on section 4's and section 3's own points, their gates, and section 3's mark after its
+# swing have not run.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -235,7 +266,11 @@
 # NEEDS: singleplayer, English as the game language (the messages name the item and the bench),
 # no NoWorkbench key set in the world, no nocost, and a strip of untouched ground no steeper than 1
 # in 20 with no ward from 16 m ahead of you to 26 m behind, 9 m wide on your right and 12 m on
-# your left, with nothing built or growing on it and no other workbench within 20 m of it. Not
+# your left, with nothing built or growing on it, no rock or boulder on it, and no other workbench
+# within 20 m of it. A rock is the one thing on that list a fresh world puts there by itself, and
+# Devkit's `wipe` leaves the world's own rocks alone on purpose: the fourth run's section 4 swing
+# could not get the placement ray past one ("Rock_4 (1)", 27 cm off its spot at best), so it never
+# swung, and its message and its height failed after it. Not
 # near a base, and not where another scenario has just run: Skaft's and Varda's build where they
 # stand, and since Devkit 1b48353 their `flatten` really levels it. The first run started 1.4 m
 # from one of Varda's portals. Three of its swings could not get the placement ray past something
@@ -249,10 +284,13 @@
 # session is recommended but not required: log out and back in first (see THE ORDER above).
 #
 # It can fail with nothing wrong in three ways. A patch that crosses a zone boundary, where each
-# zone decides the continued flat for itself. A steep slope: between 5 and 7 percent a correct
-# build failed 1 run in 500 from a fresh session and 10 in 500 with a leftover, at the checks that
-# read ground far from where you marked it. And section 6's stone count, as above, about one run
-# in a thousand.
+# zone decides the continued flat for itself. A steep slope: the heights that read ground away
+# from a mound mark that ground first, so a slope no longer moves them, but past 1 in 20 the
+# gates before them start to refuse, 3 or 4 runs in 100 between 5 and 15 percent, and the checks
+# that depend on how much a swing wants (mostly section 6's message and count, now and then
+# section 2's message and section 5's count) fail 6 to 8 runs in 100 there. A gate refusing means
+# the strip was too steep for that check, not that Jafna is wrong. And section 6's stone count, as
+# above, about one run in a thousand.
 #
 # LEAVES: four mounds, one with its near side dug about a metre, two patches a metre up where the
 # stone ran out, two patches whose middle is raised to mound height with a step round it, one circle
@@ -452,19 +490,48 @@ height 3 0 1.9 0.4
 # ---- 4, second half: no stone, measured, from mound A's right side
 #
 # The swing raises nothing past the hoe's own easing. 12 m wide again, so the ground the hoe does
-# move comes up its full metre for a good way round the middle and reads flat there.
+# move comes up all or most of its metre for a good way round the middle.
 #
 # Measured 2.5 m out from the middle of the swing, and that distance is what lets the run go
 # without a fresh session. A leftover of less than a stone can pay for the grid point under the
 # crosshair and little more, since each point round the middle costs about 0.9 cubic metres, so it
 # never reaches this spot. Half a metre out, where this check used to read, it could, and a correct
-# build failed there about one re-run in six. A build that raises without stone lifts the whole
-# circle and reads about 0 here. Before the flat top such a build only eased the ground, read about
-# -0.8 this far out and passed, which is why the check used to sit so close to the middle.
+# build failed there about one re-run in six. Before the flat top a build that raises without stone
+# only eased the ground, and that far out it read like a correct one, which is why the check used
+# to sit so close to the middle.
+#
+# The spot is measured against its own ground, marked standing on it before the swing, the way
+# section 7 is, and the check reads how far it came up. Until 2026-09-29 it read against the mound
+# top and wanted -0.90 give or take 0.38, which took the spot to lie 1.9 m below the mound top. The
+# fourth run in a game had ground falling about 12 in 100 across mound A, and the spot lay 1.31 m
+# below it. That swing never ran (a rock took the placement ray, see NEEDS), so the check read the
+# untouched ground at -1.31. Had it run, a correct swing would have read -0.68 to -0.43 there in the
+# copy of the game's arithmetic, and the old window ended at -0.52: about one run in three would
+# have failed on a slope alone.
+#
+# Against its own ground the hoe gives the spot its metre or a little less, because its easing
+# thins toward the edge of the swing and the spot's triangle can have a corner further out: 0.59 to
+# 1.00 in the copy of the game's arithmetic, over 16000 runs on slopes up to 1 in 5 and on uneven
+# ground, fresh and re-run, whenever the swing aimed 1.2 m or more above the spot. So the check
+# wants 0.5 to 1.1. A build that raises without stone lifts the spot all the way to the height,
+# 1.2 m or more by the gate, and one that drops the hoe's own swing when it refuses reads 0.
+#
+# The gate is `height 0 0` from where you swing, the ground under you against the spot, which is
+# the height the swing aims at. Under 1.2 m the hoe's metre and a fill to the height read too alike
+# to tell apart. Past 8 m the ground is further down than a fill may lift at all. On the ground
+# NEEDS asks for the spot lies 1.5 to 2.2 m below, so the gate only refuses a strip steeper than
+# that.
+#
+# The move onto the spot is from where mound A was built, 3 m short of its middle, so it is 3 m on
+# and 5.5 m right, and the step back of 5 m to the left puts you half a metre right of the middle,
+# where you stood before. `landed` between the two for the same reason as at every mound.
 
 wait 2
-move 3 0.5
+move 3 5.5
 mark
+landed
+move 0 -5
+height 0 0 4.6 3.4
 tool Hoe mud_road_v2
 skill Crafting 100
 wait 1
@@ -473,7 +540,7 @@ onscreen HOLDING no
 build mud_road_v2 0 2.5
 wait 1
 centre Not enough Stone yes
-height 0 5 -0.9 0.38
+height 0 5 0.8 0.3
 skill Crafting 0
 
 
@@ -559,27 +626,61 @@ centre Not enough Stone yes
 # check that they left nothing owing. How many stones it takes depends on that leftover, so it is
 # not checked.
 #
-# Then three heights against the mound top, which is the height the swing aims at: the middle, a
-# point halfway to the edge of the circle, and a point 1.5 m outside it. The halfway point is the
-# flat top, where the hoe on its own eases the ground only half the way. It is 1.5 m out and not 2,
-# and the outside point 4.5 m out and not 3.5, because the ground between grid points is drawn as
-# triangles: a spot within 1.4 m of the edge can sit on a triangle with a corner on the other side
-# of it, and at 2 m out a correct build read as low as -0.96 in the copy of the game's arithmetic.
-# The outside point reads the ground as it was, about -1.9, give or take the slope: a correct build
-# read -2.26 to -1.32 over 4000 runs.
+# Then three heights: a point 2 m outside the circle against its own ground, and the middle and a
+# point halfway to the edge of the circle against the height the swing aims at.
+#
+# The outside point is marked standing on it before the swing, the way section 7's spot is, and
+# wants +0.00: the ground there is where it was. Until 2026-09-29 it read against the mound top and
+# wanted -1.90 give or take 0.6, which took it to lie 1.9 m below the mound top. The fourth run in a
+# game read -2.79 there, and Jafna was right: that point lay 0.95 m below mound A's own spot, on
+# ground falling about 12 in 100 across the mound, and nothing had touched it. The gate before the
+# swing, `height 0 0` from where you swing, says the swing aims at least half a metre above the
+# point, so a fill that reached it would show; past 8 m no fill may lift it at all. On the ground
+# NEEDS asks for it lies 1.4 to 2.3 m below.
+#
+# It is 2 m outside the circle and no longer 1.5, because the ground between grid points is drawn
+# as triangles and the swing's circle is centred on the grid point nearest the crosshair, not on
+# the crosshair. 1.5 m out one corner of the point's triangle can fall inside the circle and be
+# filled, and in the copy of the game's arithmetic a correct build lifted the point there by up to
+# 0.42 on the ground NEEDS asks for and 0.58 on steeper, uneven ground, which only the old window's
+# width hid. 2 m out it never moved, over 16000 runs on slopes up to 1 in 5, uneven, fresh and
+# re-run.
+#
+# Devkit keeps one mark, so the height the swing aims at is marked after the swing, standing where
+# you swung from. The swing aims at the ground under you, and leaves it a little higher than that:
+# the mound's crown is highest in its middle, and the swing pulls the corners round your feet that
+# stand above its height down part of the way and fills the ones below it all the way. The middle
+# and the halfway point are filled to exactly the height, so a correct build reads them -0.06 to
+# +0.01 against that mark, over 8000 of those runs on the ground NEEDS asks for, even and uneven.
+# The eased fill still reads about -1.0 at the halfway point, and a swing that never raises about
+# -0.9 in the middle.
+#
+# The halfway point is the flat top, where the hoe on its own eases the ground only half the way.
+# It is 1.5 m from the middle and not 2 for the same reason as the outside point: a spot within
+# 1.4 m of the edge can sit on a triangle with a corner on the other side of it, and at 2 m out a
+# correct build read as low as -0.96.
+#
+# The move onto the outside point is from section 6's place on mound C's left side, 12 m on and
+# 7.5 m further left, and the step back of 7.5 m to the right puts you half a metre left of mound
+# A's middle, where section 3 has always swung from. `landed` between the two for the same reason
+# as at every mound.
 
 wait 2
-move 12 0
+move 12 -7.5
 mark
+landed
+move 0 7.5
+height 0 0 4.25 3.75
 give Stone:20
 onscreen Flattens yes
 onscreen HOLDING no
 build mud_road_v2 0 -2.5
 wait 1
 centre Not enough no
+height 0 -7.5 0 0.1
+mark
 height 0 -2.5 0 0.1
 height 0 -4 0 0.1
-height 0 -7 -1.9 0.6
 
 
 # ---- mound D, 10 m ahead and 9 m to your left of where you started, built 18 m from the bench
