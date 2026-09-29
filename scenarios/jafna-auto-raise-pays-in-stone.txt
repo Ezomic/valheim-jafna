@@ -1,6 +1,8 @@
+#! nostage
+#
 # Jafna: a flattening swing raises low ground for stone, and nothing else costs any.
 #
-# Seven claims:
+# Eight claims:
 #
 #   1. Digging is free. A swing that pulls a mound down further than the hoe's one metre takes no
 #      stone.
@@ -19,6 +21,16 @@
 #   7. Raising with stone needs a workbench in range, as Raise ground does. Out of its range a
 #      swing that would be paid takes no stone, the ground comes up the hoe's own free metre and
 #      no further, and both the build panel and the middle of the screen say a Workbench is needed.
+#   8. Only your own swing is reshaped. Devkit's `flatten` is a terrain op that is not a swing, and
+#      it levels to its own height even with its circle on a flat at another height, where a build
+#      that reshaped every op continues that flat instead.
+#
+# NO STAGE. The `#! nostage` line at the top turns off the ground Devkit makes ready before the
+# first step (from Devkit 96df32a). That stage levels a disc 30 m round you with a 4 m ramp beyond
+# it and flags every point of it as shaped, and a shaped point is exactly what Jafna's continued
+# flat reads. So on staged ground a swing here can find the staged height under it and continue
+# that instead of aiming at the mound top, and the fills this file is about never run. It needs the
+# untouched ground NEEDS asks for, not a staged one.
 #
 # HOW A SWING AIMS ABOVE THE GROUND. A scenario cannot hold Left Alt and Jafna has no console
 # command for a held height. It does not need either. The hoe's Level ground does not aim at the
@@ -121,7 +133,7 @@
 # Sections 4, 2 and 1 come first because they expect no stone to move. The first swing is one no
 # stone can pay for: from mound B, with an empty pack and Crafting at 100 so it covers 12 metres,
 # its flat top wants about 70 to 115 cubic metres. It runs short, and that is claim 4's message.
-# Claims 2 and 1 follow, then claim 4's height, then claims 5, 6, 3 and 7.
+# Claims 2 and 1 follow, then claim 4's height, then claims 5, 6, 3, 7 and 8.
 #
 # Claims 5 and 6 each give two stones to a swing they cannot pay for in full, and check that both
 # are gone. A short swing stops at a whole ring of points, so it can leave most of a stone paid
@@ -131,9 +143,11 @@
 # is also the proof that claims 5 and 6 left no debt: it needs about 4 to 7 Stone and is given 20,
 # so a correct build is never short there.
 #
-# Section 7 comes last. On a correct build it takes no stone at all, so nothing the others left paid
-# for can move its count. It needs a mound of its own at the edge of the bench's range, built from
-# just inside it and swung from just outside.
+# Section 7 comes last of the swings. On a correct build it takes no stone at all, so nothing the
+# others left paid for can move its count. It needs a mound of its own at the edge of the bench's
+# range, built from just inside it and swung from just outside. Section 8 swings nothing and reads
+# no stone. It comes after all of them because it digs into section 3's flat top, which it needs as
+# the flat at another height, and nothing after it reads that ground again.
 #
 # Claim 4's height and claim 3 are on opposite sides of mound A on purpose. A swing that runs out
 # leaves ground a metre up and flat, and the next swing on that spot continues that flat instead of
@@ -191,6 +205,12 @@
 #     marked before the swing: the hoe's free metre and no more. A build that fills there anyway
 #     reads the whole way up to the mound top, 1.4 m or more, which `height 0 0 4.7 3.3` just
 #     before it makes sure of, and one that drops the hoe's own swing with the fill reads 0.
+#   - `flatten 0 3.5 2` and `height 0 3.5 0 0.1` in section 8: a build that continues the flat under
+#     an op that is not a swing levels Devkit's circle to section 3's flat top, 0.5 m or more above
+#     the ground you stand on, which `height 0 3.5 4.25 3.75` just before it makes sure of. The
+#     flatten then fails its own check that the middle came down to your height, and the height
+#     fails with it. A scenario log caught the build before this one doing exactly that to a Devkit
+#     flatten, 0.2 m below its own target.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
 #     If either fails, nothing after it means anything. The height is against the mound's own
 #     ground, marked on its spot before it is built (see THE MOUNDS). A `build raise_v2` refused
@@ -235,7 +255,8 @@
 # message and its height failed with it, and section 3's outside point sat 0.95 m lower than the
 # check guessed (see sections 4 and 3). Jafna logged every swing that did happen as it should.
 # The marks on section 4's and section 3's own points, their gates, and section 3's named mark
-# have not run.
+# have not run. Nor have section 8 and the `#! nostage` line, which were added on 2026-09-29 and
+# worked out by hand from section 3's geometry, not in the copy of the game's arithmetic.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -263,6 +284,10 @@
 #     reads; section 7 uses that, and it cannot price a spot without swinging at it.
 #   - The hold key ignoring Alt+Tab and chords, since nothing here presses a key or takes the
 #     focus away. Manual steps 9 to 12.
+#   - The rest of claim 8. Section 8 holds no height, earns no reach at Crafting 0, and is
+#     singleplayer, so it cannot see a held height or a Crafting reach kept off an op that is not a
+#     swing, nor a zone owner leaving a swing from a player without Jafna as vanilla. Nothing tests
+#     those, manual steps included.
 #
 # NEEDS: singleplayer, English as the game language (the messages name the item and the bench),
 # no NoWorkbench key set in the world, no nocost, and a strip of untouched ground no steeper than 1
@@ -295,7 +320,8 @@
 #
 # LEAVES: four mounds, one with its near side dug about a metre, two patches a metre up where the
 # stone ran out, two patches whose middle is raised to mound height with a step round it, one circle
-# six metres across raised to mound height with a step at its edge, one patch a metre up in front of
+# six metres across raised to mound height with a step at its edge and a circle four metres across
+# in it levelled back down to the ground beside it, one patch a metre up in front of
 # the fourth mound where the bench was out of range, dirt over all of it, and the workbench, left
 # standing because taking it down drops its wood on the ground. Crafting is put back. Devkit
 # empties the pack and hands back the test kit. Jafna keeps up to a stone of credit until you log
@@ -758,6 +784,40 @@ wait 1
 carrying Stone 20
 centre Workbench nearby yes
 height 2.5 0 1 0.15
+
+
+# ---- 8: Devkit's flatten is not a swing, so it does not continue a flat at another height
+#
+# Claim 8. Every Jafna terrain hook reshapes the local player's own swing and nothing else, and any
+# other op comes through as vanilla. Devkit's `flatten` is such an op: a TerrainOp Devkit makes
+# itself, named devkit_flatten, that levels a circle to the ground under your feet. It is taken with
+# the hoe out and Level ground selected, because that is when telling a swing apart by the
+# selection has to get it right.
+#
+# Taken standing on section 3's outside point, untouched ground 2 m outside its flat top, with the
+# circle 4 m across and centred 3.5 m to your right. That centre is section 3's halfway point, 1.5 m
+# inside the edge of the flat top, so every shaped point near the middle of the circle is on that
+# flat. The flat top stands 0.5 m or more above the ground you stand on, which the height before the
+# flatten checks first: nearer than that, the flat's height and the flatten's own would read alike.
+#
+# A build that reshaped every op continues the flat under it. The circle stays up on the flat top,
+# `flatten` fails its own check that the ground at the middle came down to your height, and the
+# height after it fails too. A correct build levels the circle down to the ground you stand on. Its
+# smoothed rim reaches 2 m further, to where you stand and into mound A's side, which nothing after
+# this reads.
+#
+# The move is from where section 7 swung on mound D, 18.5 m back and 1 m right, onto section 3's
+# outside point, and the mark there is the ground under you, the height the flatten levels to.
+
+wait 2
+move -18.5 1
+mark
+height 0 3.5 4.25 3.75
+tool Hoe mud_road_v2
+wait 1
+onscreen HOLDING no
+flatten 0 3.5 2
+height 0 3.5 0 0.1
 
 
 skill Crafting back

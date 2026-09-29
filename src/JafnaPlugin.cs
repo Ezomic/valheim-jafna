@@ -32,11 +32,16 @@ namespace Jafna
     /// widens that hole, so Jafna tests the whole footprint before it will let the swing land.
     ///
     /// Where the work happens: the height and the radius are both applied by whichever client
-    /// owns that zone's TerrainComp, which is frequently not the player who swung. The height
-    /// needs nothing to travel, because the flags it reads are already on the owner's machine.
-    /// The radius does, and vanilla carries no room for it, so it is appended behind a magic
-    /// number in a place nothing reads - see Reach.cs. An owner without Jafna never looks, and
-    /// applies an ordinary vanilla op.
+    /// owns that zone's TerrainComp, which is frequently not the player who swung. The flags the
+    /// height is read from are already on the owner's machine. The radius is not, and vanilla
+    /// carries no room for it, so it is appended behind a magic number in a place nothing reads -
+    /// see Reach.cs. An owner without Jafna never looks, and applies an ordinary vanilla op.
+    ///
+    /// Only the player's own swing is touched. Every flattening op on the owner's machine looks
+    /// alike by the time it lands, so the swinger appends that package to its own swing every
+    /// time and to nothing else, and the owner reshapes only what carries it. A location's own
+    /// shaping, another mod's op, Devkit's flatten and a swing from a player without Jafna all
+    /// come through as vanilla. See JafnaPatches for where each hook asks.
     ///
     /// Raising what the flattening cannot reach costs stone, at the rate the hoe's own Raise
     /// ground charges, and it splits across the same two machines: the swinger decides how much

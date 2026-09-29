@@ -56,6 +56,18 @@ tabbing out with a levelling tool in your hands pinned a height and left it on f
 session. The first scenario run caught it holding a height nobody had asked for. The height held
 is still taken when you press, not when you let go.
 
+**Only your own swing is reshaped.** Continuing the flat, the reach Crafting buys and a held
+height used to apply to any flattening operation, not only to the hoe in your hands: a location
+shaping its own ground, another mod's operation, a Devkit flatten, and on a zone you own, a swing
+from a player without Jafna. A scenario log caught a Devkit flatten levelled 0.2 m below its own
+target, to a flat its circle happened to touch. Now all of them come through exactly as vanilla
+has them, by the rule raising with stone already followed: the operation has to be your swing,
+with the entry it came from selected. Your client marks its own swing with the note Jafna already
+appends, now on every swing and not only a wide or held one, and the zone owner reshapes only what
+carries that note. A client on 1.0.0 added the note only to a wide or held swing, so an owner on
+this version no longer continues the flat under that client's other swings. The auto-raise
+scenario has a new check for it, and no longer lets Devkit level the ground before it starts.
+
 In multiplayer the client that owns the zone raises the ground and sends your client the bill,
 and your client pays it out of your pack. A zone owner without this version raises nothing and
 bills nothing, so you are never charged for ground that did not move. How far out your stone
@@ -68,8 +80,8 @@ where it was raised before.
 
 Not run in a game yet. The price Raise ground resolves to, the flat top and the step at its edge,
 the middle-first rule when stone runs short, the eight metre rule, the workbench rule, the panel
-lines and messages for all three, the bill between two machines, and the hold key ignoring Alt+Tab
-are all untested.
+lines and messages for all three, the bill between two machines, the hold key ignoring Alt+Tab,
+and only your own swing being reshaped are all untested.
 
 ## 1.0.0 - 20 September 2026
 

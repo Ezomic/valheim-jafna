@@ -45,6 +45,8 @@ still start a new platform at a new height: stand clear of the old one and swing
 - **Reach grows with Crafting.** Nothing below about Crafting 25, growing to a 6 metre radius
   at Crafting 60 against the hoe's own 3. Never a discount: a swing costs exactly the stamina
   vanilla charges.
+- **Only your own swing is changed.** Ground shaped by anything else, a location, another mod,
+  a Devkit flatten or a player without Jafna, is shaped exactly as vanilla shapes it.
 - **A ward you cannot use blocks the whole swing, not just its centre.**
 - **The build panel shows the numbers**: the reach you have, the height the swing will use,
   where that height came from, and what raising the low ground will cost.
@@ -254,11 +256,19 @@ in code, so if a setting looks like it is doing nothing, read the cfg before any
 
 Terrain is applied by whichever client owns the zone, which is often not the player swinging.
 
-Continuing a flat needs nothing to travel, because the flags it reads are already on that
-client's machine. The reach does, and vanilla's terrain message has no room for it, so Jafna
-appends the number in a place nothing reads. An owner running Jafna finds it and uses it; an
-owner without Jafna never looks and applies a perfectly ordinary vanilla operation. Nothing
-breaks in either direction, and a player without the mod is never refused the server.
+The flags a continued flat reads are already on that client's machine. The reach is not, and
+vanilla's terrain message has no room for it, so Jafna appends the number in a place nothing
+reads. An owner running Jafna finds it and uses it; an owner without Jafna never looks and
+applies a perfectly ordinary vanilla operation. Nothing breaks in either direction, and a player
+without the mod is never refused the server.
+
+That appended note is also how the owner knows the operation is a swing at all. By the time a
+terrain operation reaches the owner, a hoe swing looks exactly like a location shaping its own
+ground, another mod's operation or a Devkit flatten. So your client adds the note to every swing
+you take, at the hoe's own width too, and to nothing else, and the owner reshapes only what
+carries it. Everything else it applies as vanilla, a swing from a player without Jafna included.
+A client on 1.0.0 added the note only to a swing wider than the hoe's own or aimed at a held
+height, so an owner on this version no longer continues the flat under that client's other swings.
 
 Raising ground for stone splits the same way. Your client works out whether the swing needs stone
 and how far out from the middle of the swing your pack pays for, and sends that distance along
@@ -324,6 +334,11 @@ left alone and said so, the workbench rule and its two messages, and the bill tr
 two machines.
 
 The hold key counting on release, and ignoring Alt+Tab and chords, has not been in a game either.
+
+Nor has only your own swing being changed. The auto-raise scenario checks that a Devkit flatten
+beside a flat at another height levels to its own height, and that check has not run. Nothing
+checks a held height or a Crafting reach staying off an operation that is not a swing, or an owner
+leaving a swing from a player without Jafna as vanilla.
 
 ## Bugs and ideas
 

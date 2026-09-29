@@ -918,8 +918,11 @@ namespace Jafna
 
             if (!JafnaConfig.AutoRaise.Value || player == null) return -1f;
 
+            // Only ever asked about the local player's own swing: ApplyOperation hands every other
+            // op straight back to vanilla before it gets here (Reach.IsSwing), so a pickaxe's dig,
+            // a location's shaping or Devkit's flatten never takes stone out of a pack.
             TerrainOp.Settings settings = op.m_settings;
-            if (!Applies(settings) || !IsSwingOf(player, op)) return -1f;
+            if (!Applies(settings)) return -1f;
 
             Vector3 point = op.transform.position;
 
@@ -1052,27 +1055,6 @@ namespace Jafna
             if (float.IsPositiveInfinity(reach)) return "the whole swing";
             if (reach <= 0f) return "nothing";
             return "every low point within " + reach.ToString("0.00") + "m of the middle";
-        }
-
-        /// <summary>
-        /// Whether this op is the local player swinging the tool in their hands.
-        ///
-        /// Any TerrainOp instantiated on this machine goes through ApplyOperation - a pickaxe's dig,
-        /// a location's own shaping, Devkit's flatten - and none of them should ever take stone out
-        /// of a pack. The selected build piece being the op's own prefab is the test that only a
-        /// swing passes.
-        /// </summary>
-        private static bool IsSwingOf(Player player, TerrainOp op)
-        {
-            if (!player.InPlaceMode()) return false;
-
-            PieceTable table = player.GetBuildTool();
-            if (table == null) return false;
-
-            GameObject selected = table.GetSelectedPrefab();
-            if (selected == null) return false;
-
-            return Utils.GetPrefabName(op.gameObject.name) == selected.name;
         }
 
         /// <summary>Listens for bills on a zone's compiler. Called from TerrainComp.Awake on every client.</summary>

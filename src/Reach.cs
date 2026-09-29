@@ -30,6 +30,17 @@ namespace Jafna
     /// never looks and applies a perfectly ordinary vanilla op. The failure mode of the thing
     /// that is missing is the behaviour of the game without it, which is the only acceptable
     /// shape for a change to a protocol that is not yours.
+    ///
+    /// The package is also the only thing that tells the owner an op is a Jafna swing at all.
+    /// DoOperation is handed a position and a settings object, and a location shaping its own
+    /// ground, another mod's op, Devkit's flatten and a swing from a player without Jafna all
+    /// look exactly like a hoe swing there. So the swinger appends the package to its own swing
+    /// every time, at the hoe's own width with nothing held included, and to nothing else (see
+    /// <see cref="IsSwing"/>), and the owner reshapes only what arrives carrying it. Until
+    /// 2026-09-29 the swinger sent it only when it had a wider radius, a held height or a fill to
+    /// say, and the owner continued the flat under every flattening op whatever sent it. A
+    /// scenario log caught Devkit's flatten levelled 0.2 m below its own target, to a flat it
+    /// happened to touch.
     /// </summary>
     internal static class Reach
     {
@@ -70,10 +81,13 @@ namespace Jafna
             catch (Exception e)
             {
                 _bindFailed = true;
+                // Every swing's package is sent through this view, and the package is how a zone
+                // owner knows an op is a swing at all, so without it nothing is reshaped anywhere,
+                // this machine's own zones included.
                 JafnaPlugin.Log.LogWarning(
-                    "Could not reach TerrainComp.m_nview, so the reach will not travel to other "
-                    + "players this session and levelling stays vanilla width online. "
-                    + "Singleplayer is unaffected. " + e.Message);
+                    "Could not reach TerrainComp.m_nview, so no swing can carry Jafna's note to the "
+                    + "zone that applies it, and levelling is vanilla this session, singleplayer "
+                    + "included. " + e.Message);
             }
 
             return !_bindFailed;
@@ -101,6 +115,39 @@ namespace Jafna
         internal static bool IsFlatten(TerrainOp.Settings settings)
         {
             return settings != null && (settings.m_smooth || settings.m_level);
+        }
+
+        /// <summary>
+        /// Whether this op is the local player swinging the tool in their hands, which is the only
+        /// op Jafna ever reshapes where it starts.
+        ///
+        /// Any TerrainOp instantiated on this machine goes through GetRadius and ApplyOperation: a
+        /// pickaxe's dig, a location's own shaping, another mod's op, Devkit's flatten. None of them
+        /// should be widened, pulled to a held height, carry a fill or take stone out of a pack.
+        /// The selected build piece being the op's own prefab is the test that only a swing passes.
+        /// It began as the fill's test alone, and the rest of the mod took it on 2026-09-29 (see
+        /// the class comment). A mod that instantiates the hoe's own entry while the player has it
+        /// selected would pass it too. Nothing here can tell that op from the click, so that is
+        /// accepted.
+        ///
+        /// By name, because an instantiated op is called after its prefab with "(Clone)" on the end,
+        /// and GetPrefabName takes that off. Player.PlacePiece instantiates the op while the player
+        /// is still in place mode with the entry selected, so the test holds for the whole of
+        /// TerrainOp.Awake, which is where GetRadius and ApplyOperation are both called.
+        /// </summary>
+        internal static bool IsSwing(TerrainOp op)
+        {
+            Player player = Player.m_localPlayer;
+            if (player == null || op == null) return false;
+            if (!player.InPlaceMode()) return false;
+
+            PieceTable table = player.GetBuildTool();
+            if (table == null) return false;
+
+            GameObject selected = table.GetSelectedPrefab();
+            if (selected == null) return false;
+
+            return Utils.GetPrefabName(op.gameObject.name) == selected.name;
         }
 
         /// <summary>
