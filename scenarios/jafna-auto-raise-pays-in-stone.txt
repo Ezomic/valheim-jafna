@@ -254,9 +254,14 @@
 # Jafna's: section 4's second swing never happened, because a rock took the placement ray, so its
 # message and its height failed with it, and section 3's outside point sat 0.95 m lower than the
 # check guessed (see sections 4 and 3). Jafna logged every swing that did happen as it should.
-# The marks on section 4's and section 3's own points, their gates, and section 3's named mark
-# have not run. Nor have section 8 and the `#! nostage` line, which were added on 2026-09-29 and
-# worked out by hand from section 3's geometry, not in the copy of the game's arithmetic.
+# The fifth, later on 2026-09-29, had the marks on section 4's and section 3's own points, their
+# gates, section 3's named mark, section 8 and the `#! nostage` line, all for the first time, and
+# every one of those checks passed but one gate. It failed 4 of 168, none of them Jafna's: mound
+# A's second Raise ground could not be aimed (see the fourth way below), so the mound's stone count
+# and height failed, and section 4's gate read the one-swing mound at +1.06 against the 1.2 it asks
+# for. The two stones that swing never spent were still in the pack for section 4's swing, which is
+# meant to have none, so its log reads "Paid 2" there: a fill the pack could pay for, billed as it
+# should be. Jafna logged every swing that did happen as it should.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -309,14 +314,31 @@
 # because the 12 metre swings rely on MaxRadius 6 and sections 6 and 3 on the hoe's own 3. A fresh
 # session is recommended but not required: log out and back in first (see THE ORDER above).
 #
-# It can fail with nothing wrong in three ways. A patch that crosses a zone boundary, where each
+# It can fail with nothing wrong in four ways. A patch that crosses a zone boundary, where each
 # zone decides the continued flat for itself. A steep slope: the heights that read ground away
 # from a mound mark that ground first, so a slope no longer moves them, but past 1 in 20 the
 # gates before them start to refuse, 3 or 4 runs in 100 between 5 and 15 percent, and the checks
 # that depend on how much a swing wants (mostly section 6's message and count, now and then
 # section 2's message and section 5's count) fail 6 to 8 runs in 100 there. A gate refusing means
-# the strip was too steep for that check, not that Jafna is wrong. And section 6's stone count, as
+# the strip was too steep for that check, not that Jafna is wrong. Section 6's stone count, as
 # above, about one run in a thousand.
+#
+# And a mound's second Raise ground that cannot be aimed, on ground that falls away steeply across
+# the mound's spot. Raise ground centres on the grid point nearest the spot, up to half a metre off
+# it, so after the first swing the spot can lie just past the top of the new block. The block's top
+# keeps the shape of the ground under it, and the second swing's ray comes down from your eye onto
+# ground a metre higher than the first one's did, so it is far shallower: where the top falls away
+# from you faster than that ray comes down, the grid edge through the top hides the spot. `build`
+# then fails "could not put the placement ray on the spot - best N cm off, last on Terrain", N being
+# how far back along the ray that edge crosses, and the mound's stone count, its height and any
+# gate that stands on it fail after it. The fifth run lost mound A this way. Its spot lay 0.13 m past
+# the grid line through the point the swing centred on, a line the ray crossed 15 cm short of the
+# spot, and the aim's best was 16 cm off. The first swing on that same spot, from the same place,
+# landed exactly on it. And the spot came up 0.88 m where level ground would have given it about
+# 0.96, which a Raise ground does only when a grid point round the spot stood above the spot's own
+# height: the ground there was not level. No step here can aim from higher up, and a stance closer
+# than 3 m would stand on the mound's own slope on most headings, so the answer is ground that is
+# flatter where the mounds go.
 #
 # LEAVES: four mounds, one with its near side dug about a metre, two patches a metre up where the
 # stone ran out, two patches whose middle is raised to mound height with a step round it, one circle
