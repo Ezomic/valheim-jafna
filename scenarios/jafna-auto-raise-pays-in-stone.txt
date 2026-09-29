@@ -174,12 +174,13 @@
 #   - `height 0 -4 0 0.1` in section 3, halfway to the edge of the circle: one paid swing lands it
 #     on the height. The eased fill reads about -1.0 there, and about -0.3 in the middle, which
 #     `height 0 -2.5 0 0.1` catches most of the time as well. Both are against the ground under you
-#     marked after the swing, which a correct build leaves within 0.06 of the height it aimed at.
-#   - `height 0 -7.5 0 0.1` in section 3, 2 m outside the circle, against that point's own ground
-#     marked before the swing: the ground there is where it was, which is the step. A fill that
-#     reached it lifts it to the height, half a metre or more, which `height 0 0 4.25 3.75` before
-#     the swing makes sure of. In the copy of the game's arithmetic a fill reaching 1.5 m past the
-#     circle was caught here in about 6 runs in 10, and one reaching 2.5 m past it in 999 in 1000.
+#     marked before the swing, which is the height it aims at.
+#   - `height 0 -7.5 0 0.1 out` in section 3, 2 m outside the circle, against that point's own
+#     ground, marked before the swing as `out`: the ground there is where it was, which is the step.
+#     A fill that reached it lifts it to the height, half a metre or more, which
+#     `height 0 0 4.25 3.75 out` before the swing makes sure of. In the copy of the game's
+#     arithmetic a fill reaching 1.5 m past the circle was caught here in about 6 runs in 10, and
+#     one reaching 2.5 m past it in 999 in 1000.
 #   - `onscreen needs a Workbench nearby yes` in section 7, read in the frame of the swing: a build
 #     that ignores the bench prices that swing instead, "Filling up to that height costs N Stone".
 #   - `carrying Stone 20` in section 7: a build that ignores the bench lifts the whole circle for 4
@@ -221,8 +222,8 @@
 # the old two checks failed a correct build in 35 runs in 100 by themselves; the new ones never did
 # past their gates, which refused 3 or 4 in 100. Nor did they on slopes up to 1 in 5, or on ground
 # with three swells laid over the slope, each up to 0.3 m high and 15 to 45 m long. The middle and
-# halfway points against the mark after the swing failed in the same few runs steeper than 1 in 8
-# as they did against the mark before it. Section 7 was not in that check either.
+# halfway points, read against the mark under you before the swing, failed only in a few runs
+# steeper than 1 in 8. Section 7 was not in that check either.
 #
 # Sections 1 to 6 ran in a game on 2026-09-28, on the build before the workbench rule, with the
 # bench at 14 m and the marks where you stood, and passed every check but mound C's height (see
@@ -233,8 +234,8 @@
 # Jafna's: section 4's second swing never happened, because a rock took the placement ray, so its
 # message and its height failed with it, and section 3's outside point sat 0.95 m lower than the
 # check guessed (see sections 4 and 3). Jafna logged every swing that did happen as it should.
-# The marks on section 4's and section 3's own points, their gates, and section 3's mark after its
-# swing have not run.
+# The marks on section 4's and section 3's own points, their gates, and section 3's named mark
+# have not run.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -646,14 +647,14 @@ centre Not enough Stone yes
 # width hid. 2 m out it never moved, over 16000 runs on slopes up to 1 in 5, uneven, fresh and
 # re-run.
 #
-# Devkit keeps one mark, so the height the swing aims at is marked after the swing, standing where
-# you swung from. The swing aims at the ground under you, and leaves it a little higher than that:
-# the mound's crown is highest in its middle, and the swing pulls the corners round your feet that
-# stand above its height down part of the way and fills the ones below it all the way. The middle
-# and the halfway point are filled to exactly the height, so a correct build reads them -0.06 to
-# +0.01 against that mark, over 8000 of those runs on the ground NEEDS asks for, even and uneven.
-# The eased fill still reads about -1.0 at the halfway point, and a swing that never raises about
-# -0.9 in the middle.
+# The outside point's mark has a name, `mark out`, and its two heights read against it with
+# `height ... out`, so the unnamed mark stays free for the height the swing aims at: the ground
+# under you, marked where you swing from before the swing, as this section always did. The middle
+# and the halfway point are filled to exactly that height. Until Devkit 06d43f1 a scenario had
+# only one mark, and for one commit this file re-marked the aim after the swing instead, where the
+# swing leaves the ground under your feet up to 0.06 above the height it aimed at: most of the 0.1
+# window. The eased fill still reads about -1.0 at the halfway point, and a swing that never raises
+# about -0.9 in the middle.
 #
 # The halfway point is the flat top, where the hoe on its own eases the ground only half the way.
 # It is 1.5 m from the middle and not 2 for the same reason as the outside point: a spot within
@@ -662,23 +663,23 @@ centre Not enough Stone yes
 #
 # The move onto the outside point is from section 6's place on mound C's left side, 12 m on and
 # 7.5 m further left, and the step back of 7.5 m to the right puts you half a metre left of mound
-# A's middle, where section 3 has always swung from. `landed` between the two for the same reason
-# as at every mound.
+# A's middle, where section 3 has always swung from and where the unnamed mark is taken. `landed`
+# between the two for the same reason as at every mound.
 
 wait 2
 move 12 -7.5
-mark
+mark out
 landed
 move 0 7.5
-height 0 0 4.25 3.75
+mark
+height 0 0 4.25 3.75 out
 give Stone:20
 onscreen Flattens yes
 onscreen HOLDING no
 build mud_road_v2 0 -2.5
 wait 1
 centre Not enough no
-height 0 -7.5 0 0.1
-mark
+height 0 -7.5 0 0.1 out
 height 0 -2.5 0 0.1
 height 0 -4 0 0.1
 
