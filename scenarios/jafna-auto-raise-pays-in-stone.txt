@@ -56,6 +56,27 @@
 # middle toward the spot, because from the middle, on some headings, the mound's own corner hides
 # a spot three metres out.
 #
+# The first Raise ground on a mound is a `build`, a real swing that pays its two Stone and needs the
+# bench, and the second is a `place`, since 2026-09-29. `place` hands the same raise_v2 to
+# Player.PlacePiece at the spot's own ground, found by a ray straight down, so it needs no view of
+# the spot from the camera, which a second swing lost to the first one's crest in the fifth run
+# (see the fourth way it used to fail with nothing wrong, below). What `place` skips is everything
+# the place button's branch does around PlacePiece, read off Player.UpdatePlacement and PlacePiece
+# in 1.0: HaveRequirements, ConsumeResources and UseStamina are all the branch's, so it pays no
+# stone, asks for no bench and costs no stamina. Nothing about the ground differs. A Raise ground
+# lifts a point to the op's own height plus its lift, the op's height is the ground at the spot
+# either way (every `build raise_v2` that landed in the fifth run stood within 0.01 m of it), and
+# Jafna hands a raise op to vanilla however it was made, since it is neither a level nor a smooth.
+#
+# So each mound is given two Stone, the first swing's price, where it was given four for two
+# swings. `carrying Stone 0` after it says that swing paid and that the pack is empty again for the
+# swings after it that need it empty, and the height says the `place` landed on top of it: one
+# Raise ground on its own reads about 0.9, below the height's window. The `wait 1` between the two
+# is not slack. `place` reads the ground with a ray, and the collider a Raise ground changes is
+# rebuilt a frame later, so with no wait the second would stand on the old ground, aim at the
+# height the first already reached, and add nothing. It needs Devkit d219857 or later, whose `place`
+# finds raise_v2 on the hoe's own table when ZNetScene has no prefab by that name.
+#
 # Each mound is measured against the ground it is built on, not the ground you build it from: the
 # run steps onto the spot, marks it there, and steps three metres back to build. The second run in
 # a game, on 2026-09-28, marked where you stood instead, and mound C read +2.83 against a wanted
@@ -94,7 +115,8 @@
 # and Player.HaveRequirements refuses a piece whose station is not within build range before it
 # looks at the stone. The first run in a game had four Stone and no bench, and every Raise ground
 # was refused with "Missing requirement", so no mound was ever built and every check after one
-# read ground nothing had raised.
+# read ground nothing had raised. A `place` never asks HaveRequirements, so on each mound it is the
+# first Raise ground, the `build`, that needs the bench and says so when it is out of range.
 #
 # Since 2026-09-28 a fill needs the same bench in range of where you stand, so the bench has to
 # reach every swing that pays or runs short as well as every mound. It stands 11 m behind you and
@@ -212,10 +234,12 @@
 #     fails with it. A scenario log caught the build before this one doing exactly that to a Devkit
 #     flatten, 0.2 m below its own target.
 #   - `carrying Stone 0` and `height 3 0 1.9 0.4` after each pair of Raise ground are the fixture.
-#     If either fails, nothing after it means anything. The height is against the mound's own
-#     ground, marked on its spot before it is built (see THE MOUNDS). A `build raise_v2` refused
-#     with "Missing requirement" while the pack holds the stone is the workbench out of range, not
-#     the stone.
+#     If either fails, nothing after it means anything. The count is the first Raise ground's two
+#     Stone, the one `build` swings, and an empty pack for what comes next; the second is a
+#     `place`, which pays nothing, so the height is what says it landed (see THE MOUNDS). The
+#     height is against the mound's own ground, marked on its spot before it is built. A `build
+#     raise_v2` refused with "Missing requirement" while the pack holds the stone is the workbench
+#     out of range, not the stone.
 #
 # The geometry was checked against a copy of the game's own terrain arithmetic (RaiseTerrain,
 # SmoothTerrain, ApplyToHeightmap's clamps, the collision mesh's triangles) and Jafna's
@@ -257,11 +281,11 @@
 # The fifth, later on 2026-09-29, had the marks on section 4's and section 3's own points, their
 # gates, section 3's named mark, section 8 and the `#! nostage` line, all for the first time, and
 # every one of those checks passed but one gate. It failed 4 of 168, none of them Jafna's: mound
-# A's second Raise ground could not be aimed (see the fourth way below), so the mound's stone count
-# and height failed, and section 4's gate read the one-swing mound at +1.06 against the 1.2 it asks
-# for. The two stones that swing never spent were still in the pack for section 4's swing, which is
-# meant to have none, so its log reads "Paid 2" there: a fill the pack could pay for, billed as it
-# should be. Jafna logged every swing that did happen as it should.
+# A's second Raise ground could not be aimed (see the fourth way it used to fail, below), so the
+# mound's stone count and height failed, and section 4's gate read the one-swing mound at +1.06
+# against the 1.2 it asks for. The two stones that swing never spent were still in the pack for
+# section 4's swing, which is meant to have none, so its log reads "Paid 2" there: a fill the pack
+# could pay for, billed as it should be. Jafna logged every swing that did happen as it should.
 #
 # WHAT NO STEP HERE CAN SEE, and the manual step for each:
 #
@@ -309,12 +333,14 @@
 # which by Fill's arithmetic means earlier terrain work had already used that point's free metre.
 # Not the flatten, though: the game cancelled every Devkit flatten that day (Player.log, "Failed
 # to deserialize TerrainOp settings", 23 times). Walk well clear of all of that before starting,
-# and run this one on its own. Eat first: there are sixteen swings at 5 stamina each.
+# and run this one on its own. Eat first: there are twelve swings at 5 stamina each, the second
+# Raise ground on each mound being a `place`, which costs none. Devkit d219857 or later, for that
+# `place` (see THE MOUNDS).
 # No held height (the panel must not say HOLDING). Jafna's Reach settings at their defaults,
 # because the 12 metre swings rely on MaxRadius 6 and sections 6 and 3 on the hoe's own 3. A fresh
 # session is recommended but not required: log out and back in first (see THE ORDER above).
 #
-# It can fail with nothing wrong in four ways. A patch that crosses a zone boundary, where each
+# It can fail with nothing wrong in three ways. A patch that crosses a zone boundary, where each
 # zone decides the continued flat for itself. A steep slope: the heights that read ground away
 # from a mound mark that ground first, so a slope no longer moves them, but past 1 in 20 the
 # gates before them start to refuse, 3 or 4 runs in 100 between 5 and 15 percent, and the checks
@@ -323,22 +349,24 @@
 # the strip was too steep for that check, not that Jafna is wrong. Section 6's stone count, as
 # above, about one run in a thousand.
 #
-# And a mound's second Raise ground that cannot be aimed, on ground that falls away steeply across
-# the mound's spot. Raise ground centres on the grid point nearest the spot, up to half a metre off
-# it, so after the first swing the spot can lie just past the top of the new block. The block's top
-# keeps the shape of the ground under it, and the second swing's ray comes down from your eye onto
-# ground a metre higher than the first one's did, so it is far shallower: where the top falls away
-# from you faster than that ray comes down, the grid edge through the top hides the spot. `build`
-# then fails "could not put the placement ray on the spot - best N cm off, last on Terrain", N being
-# how far back along the ray that edge crosses, and the mound's stone count, its height and any
-# gate that stands on it fail after it. The fifth run lost mound A this way. Its spot lay 0.13 m past
-# the grid line through the point the swing centred on, a line the ray crossed 15 cm short of the
-# spot, and the aim's best was 16 cm off. The first swing on that same spot, from the same place,
-# landed exactly on it. And the spot came up 0.88 m where level ground would have given it about
-# 0.96, which a Raise ground does only when a grid point round the spot stood above the spot's own
-# height: the ground there was not level. No step here can aim from higher up, and a stance closer
-# than 3 m would stand on the mound's own slope on most headings, so the answer is ground that is
-# flatter where the mounds go.
+# There was a fourth until 2026-09-29: a mound's second Raise ground that could not be aimed, on
+# ground that falls away steeply across the mound's spot. Raise ground centres on the grid point
+# nearest the spot, up to half a metre off it, so after the first swing the spot can lie just past
+# the top of the new block. The block's top keeps the shape of the ground under it, and the second
+# swing's ray came down from your eye onto ground a metre higher than the first one's did, so it
+# was far shallower: where the top falls away from you faster than that ray comes down, the grid
+# edge through the top hides the spot. `build` then failed "could not put the placement ray on the
+# spot - best N cm off, last on Terrain", N being how far back along the ray that edge crosses, and
+# the mound's stone count, its height and any gate that stands on it failed after it. The fifth run
+# lost mound A this way. Its spot lay 0.13 m past the grid line through the point the swing centred
+# on, a line the ray crossed 15 cm short of the spot, and the aim's best was 16 cm off. The first
+# swing on that same spot, from the same place, landed exactly on it. And the spot came up 0.88 m
+# where level ground would have given it about 0.96, which a Raise ground does only when a grid
+# point round the spot stood above the spot's own height: the ground there was not level. No step
+# could aim from higher up, and a stance closer than 3 m would stand on the mound's own slope on
+# most headings. So the second Raise ground is now a `place`, which finds the spot with a ray
+# straight down and needs no view of it (see THE MOUNDS). The first stays a swing: it aims at
+# untouched ground three metres out, and in the fifth run it landed on its spot at all four mounds.
 #
 # LEAVES: four mounds, one with its near side dug about a metre, two patches a metre up where the
 # stone ran out, two patches whose middle is raised to mound height with a step round it, one circle
@@ -442,8 +470,11 @@
 
 # ---- setting up
 
+# Two Stone, for mound B's first Raise ground. Its second is a `place` and pays none, and so is
+# every mound's (see THE MOUNDS).
+
 clear
-give Hoe:1,Stone:4
+give Hoe:1,Stone:2
 skill Crafting 0
 tool Hoe mud_road_v2
 
@@ -468,6 +499,10 @@ centre (clearing the message line) no
 # Marked standing on its spot, then built from where you started. See THE MOUNDS. The wait before
 # the first move is the game's two second teleport cooldown, with the setting up in between, and
 # `landed` holds out the same cooldown before the second, which has only the mark in between.
+#
+# The first Raise ground is a swing and the second a `place` on the same spot, which needs no view
+# of it. The `wait 1` between them lets the first one's ground be rebuilt before the `place` reads
+# it, and every mound below does the same. See THE MOUNDS.
 
 wait 2
 move 3 0
@@ -476,7 +511,7 @@ landed
 move -3 0
 build raise_v2 3 0
 wait 1
-build raise_v2 3 0
+place raise_v2 3 0
 wait 1
 carrying Stone 0
 height 3 0 1.9 0.4
@@ -525,12 +560,12 @@ mark
 landed
 move -3 0
 clear
-give Hoe:1,Stone:4
+give Hoe:1,Stone:2
 tool Hoe mud_road_v2
 wait 1
 build raise_v2 3 0
 wait 1
-build raise_v2 3 0
+place raise_v2 3 0
 wait 1
 carrying Stone 0
 height 3 0 1.9 0.4
@@ -600,10 +635,10 @@ move -12 -0.5
 mark
 landed
 move -3 0
-give Stone:4
+give Stone:2
 build raise_v2 3 0
 wait 1
-build raise_v2 3 0
+place raise_v2 3 0
 wait 1
 carrying Stone 0
 height 3 0 1.9 0.4
@@ -734,10 +769,10 @@ height 0 -4 0 0.1
 
 # ---- mound D, 10 m ahead and 9 m to your left of where you started, built 18 m from the bench
 #
-# Built from just inside the bench's 20 m, the way every mound is, since Raise ground needs it.
-# Its spot, where the mark is taken, is 21 m from the bench, which does not matter: a mark builds
-# nothing. What section 3 left in the pack is taken out first, so the count below means what it
-# says.
+# Built from just inside the bench's 20 m, the way every mound is, since its first Raise ground is
+# a swing and needs it. The second is a `place`, which does not ask (see THE MOUNDS). Its spot,
+# where the mark is taken, is 21 m from the bench, which does not matter: a mark builds nothing.
+# What section 3 left in the pack is taken out first, so the count below means what it says.
 
 wait 2
 move 18 -8.5
@@ -745,10 +780,10 @@ mark
 landed
 move -3 0
 strip Stone
-give Stone:4
+give Stone:2
 build raise_v2 3 0
 wait 1
-build raise_v2 3 0
+place raise_v2 3 0
 wait 1
 carrying Stone 0
 height 3 0 1.9 0.4
