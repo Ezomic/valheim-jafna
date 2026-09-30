@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 - 30 September 2026
 
 **Low ground is raised, and paid for in stone.** This reverses the call made on 20 September
 to keep the one metre ceiling. The hoe's flattening moves a point a metre at most and then
@@ -78,10 +78,32 @@ asks the owner to raise anything.
 Lowering has not changed. Ground well above the target still stops after about a metre, or two
 where it was raised before.
 
-Not run in a game yet. The price Raise ground resolves to, the flat top and the step at its edge,
-the middle-first rule when stone runs short, the eight metre rule, the workbench rule, the panel
-lines and messages for all three, the bill between two machines, the hold key ignoring Alt+Tab,
-and only your own swing being reshaped are all untested.
+### Verified in game, 29 September 2026
+
+Singleplayer, a fresh test world. The auto-raise scenario passed all 168 of its steps, and it
+covers this much:
+
+- Digging a mound down further than the hoe's metre takes no stone, and a swing with nothing to
+  raise costs nothing and says nothing.
+- With enough stone one swing lifts its whole circle to the height. Ground halfway to the edge
+  is on the height, ground just outside the circle is where it was, and there is a step between.
+- With no stone the ground comes up the hoe's own metre and stops, and the screen says "Not
+  enough Stone". With too little, all of it goes, the middle comes up to the height, and nothing
+  is left owing.
+- Out of a workbench's range a swing that would be paid takes no stone and comes up the free
+  metre only, and both the build panel and the middle of the screen say a Workbench is needed.
+- A Devkit flatten beside a flat at another height levels to its own height, so an operation that
+  is not your swing is left as vanilla has it.
+
+Tapping Left Alt was checked by hand the same day: it holds a height, and Alt+Tab no longer does.
+
+### Known and open
+
+- Nothing here has run with a second player. The bill travelling between two machines, and an
+  owner leaving a swing from a player without Jafna as vanilla, are argued from the source only.
+- Not watched in a game: the price the build panel shows before a swing, ground past the eight
+  metre limit being left alone and the message for it, leftover stone carrying over to the next
+  swing, NoBuildCost, nocost and NoWorkbench, and a chord pressed with Left Alt spoiling the tap.
 
 ## 1.0.0 - 20 September 2026
 

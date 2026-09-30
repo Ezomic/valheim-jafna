@@ -322,23 +322,23 @@ station. That is the same shape as Skaft, where repairing buildings trains nothi
 
 ## What has not been tested
 
-The mod has been in a world and its patches run, but nothing below has been watched end to end:
-the height actually holding across a row of swings, the ward footprint refusing anything, and
-any of it with a second player.
+Nothing has been run with a second player: the reach and the bill travelling between two
+machines, and an owner leaving a swing from a player without Jafna as vanilla. The ward footprint
+has never refused anything in a test either, because there was no ward to refuse it.
 
-Raising low ground for stone has not been in a game at all yet. That covers the price Raise
-ground resolves to, a paid swing's whole circle landing on the height with a step at its edge,
-the stone it takes and each point's free metre coming off the bill, the middle coming up first
-when the stone runs short and the panel's price for it, ground past the eight metre limit being
-left alone and said so, the workbench rule and its two messages, and the bill travelling between
-two machines.
+Raising low ground for stone went through a scenario in singleplayer on 29 September 2026. That
+covers a paid swing's whole circle landing on the height with a step at its edge, the stone it
+takes and each point's free metre coming off the bill, the middle coming up first when the stone
+runs short, and the workbench rule and its two messages. Not watched yet: the panel's price before
+a swing, ground past the eight metre limit being left alone and said so, and leftover stone
+carrying over to the next swing.
 
-The hold key counting on release, and ignoring Alt+Tab and chords, has not been in a game either.
+The hold key ignoring Alt+Tab was checked by hand the same day. A chord pressed with it spoiling
+the tap was not.
 
-Nor has only your own swing being changed. The auto-raise scenario checks that a Devkit flatten
-beside a flat at another height levels to its own height, and that check has not run. Nothing
-checks a held height or a Crafting reach staying off an operation that is not a swing, or an owner
-leaving a swing from a player without Jafna as vanilla.
+The same scenario checks that a Devkit flatten beside a flat at another height levels to its own
+height, and it passes. Nothing checks a held height or a Crafting reach staying off an operation
+that is not a swing.
 
 ## Bugs and ideas
 
