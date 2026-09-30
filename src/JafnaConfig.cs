@@ -22,6 +22,7 @@ namespace Jafna
         internal static ConfigEntry<float> ContinueTolerance;
         internal static ConfigEntry<int> ContinueMinVertices;
         internal static ConfigEntry<KeyCode> HoldKey;
+        internal static ConfigEntry<bool> AutoRaise;
 
         internal static ConfigEntry<float> MinRadius;
         internal static ConfigEntry<float> MaxRadius;
@@ -81,10 +82,59 @@ namespace Jafna
                 + "choose for itself. Nothing is held across a logout, on purpose - coming back "
                 + "to a swing that moves ground toward a number you set yesterday, with nothing "
                 + "on screen having changed, is a worse trap than setting it again. "
+                + "It counts when you let go, and only as a press of this key on its own: with any "
+                + "other key or mouse button pressed while it is down, or with the game window "
+                + "losing focus in between, letting go does nothing. That is what stops Alt+Tab "
+                + "from pinning a height on the way out of the game. "
                 + "NOTE: Left Alt is also vanilla's alt-placement key, which does have a "
                 + "meaning for terrain tools, so if the ghost starts behaving oddly while you "
                 + "use this, move it to a key of its own. Keybinds are never taken over by a "
                 + "server, so this one stays yours whatever the host runs.");
+
+            // A new key rather than a changed default, so it arrives switched on in a cfg that
+            // already exists: BepInEx writes a missing key with the default from code, and only a
+            // key already in the file beats it.
+            AutoRaise = cfg.Bind("Levelling", "AutoRaise", true,
+                "When a flattening swing needs the ground higher than the hoe's flattening can lift "
+                + "it, raise the rest and pay for it with stone from your pack. The hoe's Level "
+                + "ground eases each point toward its target and stops once it has moved that point "
+                + "one metre, and only raising ground frees that metre again, which is why a held "
+                + "height far above the ground used to stop short. With this on, the part the "
+                + "flattening cannot reach is raised anyway, at the price of the hoe's own Raise "
+                + "ground: whatever that entry costs, divided by the ground one Raise ground swing "
+                + "adds to flat ground. Both are read from the game, not written here. Like Raise "
+                + "ground itself it needs a workbench within build range of where you stand (the "
+                + "station that entry names, 20 metres for a workbench with no extensions): out of "
+                + "range a swing is the hoe's alone, takes no stone, and the panel and the swing say "
+                + "so. A world with NoWorkbench set, or the nocost command, lifts that, and "
+                + "NoBuildCost does not, the same as for Raise ground. On a slope "
+                + "Raise ground by hand adds less for the same stone, so there filling is cheaper. "
+                + "Alternating Raise ground and Level ground by hand can be cheaper than filling, "
+                + "because every Raise ground gives the next flattening swing its free metre back and "
+                + "a fill does not, or every swing would get a free metre and flattening would raise "
+                + "ground for nothing. A swing where every point is within the hoe's free metre of the "
+                + "height, less what earlier swings used of it, is one the hoe can finish on its own: "
+                + "it is left exactly as vanilla has it and costs nothing. A swing with a point further "
+                + "below than that needs stone, and lifts every point under it that is below the "
+                + "height straight onto it, in that one swing, leaving a step at the edge of the "
+                + "circle until the next swing beside it that needs stone. Each point comes up its "
+                + "free metre first and only the rest of the way is charged, so a paid swing costs "
+                + "what finishing that ground over several swings would have, only all at once. A "
+                + "point less than three centimetres past its free metre is neither raised past it "
+                + "nor charged for, so touching up finished ground costs nothing either. Each point "
+                + "comes all the way up or not at all, and a point that is not raised costs nothing. "
+                + "The game never lets ground sit more than eight metres above where the world made "
+                + "it, so ground further below the height than that is not raised at all, only eased "
+                + "by the hoe for free, and the panel and the swing say so. Stone comes out whole and "
+                + "the rest is kept toward your next swing until you log out. Short of stone, a swing "
+                + "lifts the middle of the circle first, as far out as your stone pays for, leaves the "
+                + "rest to the hoe, and says so. Stone the selected entry itself costs is left for "
+                + "it. In a world with NoBuildCost set it is "
+                + "free, and the nocost command lifts the limit but still takes the stone you carry, "
+                + "which is what vanilla's Raise ground does too. Lowering is unchanged: ground well "
+                + "above the target still stops after a metre, or up to two on ground raised before, "
+                + "because digging is the pickaxe's job. Off gives back the one metre ceiling. On a "
+                + "server the host decides this.");
 
             // -- Reach -------------------------------------------------------------------
 
@@ -135,8 +185,9 @@ namespace Jafna
 
             ShowReadout = cfg.Bind("Readout", "ShowReadout", true,
                 "Put the numbers on screen while a levelling tool is out: the height under "
-                + "your crosshair, the height the swing will actually use, and whether that "
-                + "came from the crosshair or from flat ground the swing is continuing. "
+                + "your crosshair, the height the swing will actually use, whether that "
+                + "came from the crosshair or from flat ground the swing is continuing, and "
+                + "what raising the low ground under it will take from your pack. "
                 + "Without it the mod is invisible and indistinguishable from the hoe "
                 + "behaving oddly, which is the complaint it was built to answer.");
 

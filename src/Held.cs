@@ -26,6 +26,11 @@ namespace Jafna
     /// come back, swing, and watch the ground move to a number you set yesterday for a reason
     /// you no longer remember, with nothing on screen having changed to warn you. Held for the
     /// session, and the readout says so on every frame it is on.
+    ///
+    /// It pulls the player's own swings and nothing else. It travels in the package a swing
+    /// carries (see Reach's class comment), and until 2026-09-29 any flattening op made on this
+    /// machine carried it, so a Devkit flatten taken while a height was held went to the held
+    /// height rather than its own.
     /// </summary>
     internal static class Held
     {

@@ -1,5 +1,110 @@
 # Changelog
 
+## 1.1.0 - 30 September 2026
+
+**Low ground is raised, and paid for in stone.** This reverses the call made on 20 September
+to keep the one metre ceiling. The hoe's flattening moves a point a metre at most and then
+stops, so a swing aimed well above the ground never got there. Now the rest is raised, and your
+pack pays for it at the rate of the hoe's own Raise ground: what that entry costs, divided by
+the ground one Raise ground swing adds to flat ground. Both numbers are read from the running
+game and written to the log once. Alternating Raise ground and Level ground by hand can still
+be cheaper, because every Raise ground gives Level ground its free metre back and a fill does
+not.
+
+A paid swing lifts its whole circle to your height at once, and leaves a step at the edge of the
+circle until the next swing beside it that needs stone. A step under a metre is eased away by
+ordinary swings instead. That shape was picked over letting the stone follow the hoe's easing,
+which would finish only the middle of a swing and creep outward over the next few: the flat top is
+faster, and the step is its price. A paid swing takes more stone than one that followed the easing,
+because it does the work of several at once, but the ground costs the same in the end. Over ground
+two metres low that is about 7 Stone a swing at the hoe's own reach and about 27 at 12 metres
+across.
+
+Only the part the hoe could never do is charged. Every point comes up the metre the hoe would have
+given it for free, less what earlier swings used of it, and you pay for the rest of the way. A swing
+where every point is within that metre of your height is one the hoe can finish on its own, and it
+is left exactly as vanilla has it and costs nothing, so the flat top comes with paying and ordinary
+flattening is untouched. A point less than three centimetres past its free metre is not charged
+for, so going over flat ground does not cost stone. Stone comes out whole and the remainder carries
+over to the next swing until you log out. NoBuildCost makes it free, and nocost behaves the way it
+does for vanilla's Raise ground. It is on by default as `AutoRaise`, and the host decides it on a
+server.
+
+Each point comes all the way up or not at all, and you pay only for what came up. Short of stone,
+a swing lifts the middle of the circle first and works outward as far as the stone goes, and says
+so. The ground it did not reach gets the hoe's own easing and nothing else, so a short swing leaves
+a flat patch in its middle with a step round it. The game never lets ground sit more than eight
+metres above where the world made it, so ground further below the height than that is left alone
+too, rather than raised partway and charged for a height it can never reach. The build panel says
+so before the swing, and the swing says "Too far below to raise".
+
+The build panel says what a swing will cost before you take it, and that is what it takes. Short
+of stone it says what you carry, what this swing fills and takes for it, and what all of it would
+cost, or that it fills none of it when your stone does not reach even the middle.
+
+**Raising with stone needs a workbench nearby**, the rule vanilla's Raise ground follows. The
+station is read off the same Raise ground entry as the price, so on the hoe it is the workbench,
+within its build range of where you stand. Out of range, a swing that would need stone is left to
+the hoe, its free metre and its easing, takes no stone, and says `Raising needs a Workbench
+nearby`, and the build panel says the same in place of the price. NoWorkbench and nocost lift it
+and NoBuildCost does not, as for Raise ground.
+
+**Alt+Tab no longer pins a height.** The hold key now counts when you let go of it, and only when
+you pressed it on its own with the game in front the whole time. It used to act the moment it went
+down, and switching windows starts with Left Alt going down while the game still has the focus, so
+tabbing out with a levelling tool in your hands pinned a height and left it on for the rest of the
+session. The first scenario run caught it holding a height nobody had asked for. The height held
+is still taken when you press, not when you let go.
+
+**Only your own swing is reshaped.** Continuing the flat, the reach Crafting buys and a held
+height used to apply to any flattening operation, not only to the hoe in your hands: a location
+shaping its own ground, another mod's operation, a Devkit flatten, and on a zone you own, a swing
+from a player without Jafna. A scenario log caught a Devkit flatten levelled 0.2 m below its own
+target, to a flat its circle happened to touch. Now all of them come through exactly as vanilla
+has them, by the rule raising with stone already followed: the operation has to be your swing,
+with the entry it came from selected. Your client marks its own swing with the note Jafna already
+appends, now on every swing and not only a wide or held one, and the zone owner reshapes only what
+carries that note. A client on 1.0.0 added the note only to a wide or held swing, so an owner on
+this version no longer continues the flat under that client's other swings. The auto-raise
+scenario has a new check for it, and no longer lets Devkit level the ground before it starts.
+
+In multiplayer the client that owns the zone raises the ground and sends your client the bill,
+and your client pays it out of your pack. A zone owner without this version raises nothing and
+bills nothing, so you are never charged for ground that did not move. How far out your stone
+reaches rides at the end of the message Jafna already appends, where 1.0.0 stops reading.
+Whether you stand near a workbench is your client's answer too, and a swing it turns down never
+asks the owner to raise anything.
+
+Lowering has not changed. Ground well above the target still stops after about a metre, or two
+where it was raised before.
+
+### Verified in game, 29 September 2026
+
+Singleplayer, a fresh test world. The auto-raise scenario passed all 168 of its steps, and it
+covers this much:
+
+- Digging a mound down further than the hoe's metre takes no stone, and a swing with nothing to
+  raise costs nothing and says nothing.
+- With enough stone one swing lifts its whole circle to the height. Ground halfway to the edge
+  is on the height, ground just outside the circle is where it was, and there is a step between.
+- With no stone the ground comes up the hoe's own metre and stops, and the screen says "Not
+  enough Stone". With too little, all of it goes, the middle comes up to the height, and nothing
+  is left owing.
+- Out of a workbench's range a swing that would be paid takes no stone and comes up the free
+  metre only, and both the build panel and the middle of the screen say a Workbench is needed.
+- A Devkit flatten beside a flat at another height levels to its own height, so an operation that
+  is not your swing is left as vanilla has it.
+
+Tapping Left Alt was checked by hand the same day: it holds a height, and Alt+Tab no longer does.
+
+### Known and open
+
+- Nothing here has run with a second player. The bill travelling between two machines, and an
+  owner leaving a swing from a player without Jafna as vanilla, are argued from the source only.
+- Not watched in a game: the price the build panel shows before a swing, ground past the eight
+  metre limit being left alone and the message for it, leftover stone carrying over to the next
+  swing, NoBuildCost, nocost and NoWorkbench, and a chord pressed with Left Alt spoiling the tap.
+
 ## 1.0.0 - 20 September 2026
 
 First release. Built, played and corrected in one sitting; the "Verified in game" section

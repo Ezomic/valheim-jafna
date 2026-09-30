@@ -15,13 +15,33 @@ namespace Jafna
     ///                            - on the client that owns the zone, which is often somebody
     ///                              else. Receives the radius.
     ///   4. TerrainComp.DoOperation
-    ///                            - same machine. Applies the radius and decides the height.
+    ///                            - same machine. Applies the radius, decides the height, and
+    ///                              on a paid swing lifts the circle onto it. Sends the bill back.
+    ///                              A postfix on the same method notes which heightmap moved,
+    ///                              so a fill later in the frame does not measure stale ground.
     ///   5. Player.UpdatePlacementGhost
     ///                            - every frame, on the swinging client. The ward footprint.
+    ///   6. TerrainComp.Awake     - every client, every zone. Listens for that bill, which is
+    ///                              how stone comes out of the swinging player's own pack.
     ///
     /// Three and four are separate patches rather than one because the radius has to be read
     /// off the package before vanilla reads it and used after vanilla has parsed it, and the
     /// two are different methods. Everything between them is one synchronous call.
+    ///
+    /// Only the local player's own swing is reshaped, and every terrain patch here follows that
+    /// one rule. Where an op starts, one and two ask <see cref="Reach.IsSwing"/> and hand anything
+    /// else straight back to vanilla. Where an op lands, four reshapes only what arrived carrying
+    /// Jafna's package, which a swinger running Jafna appends to its own swing and to nothing
+    /// else. So a location's own shaping, another mod's op, Devkit's flatten and a swing from a
+    /// player without Jafna all come through as vanilla ops, on every machine. Until 2026-09-29
+    /// the fill alone asked, and the rest reshaped any flattening op: a scenario log caught
+    /// Devkit's flatten continued to a neighbouring flat 0.2 m below its own target.
+    ///
+    /// Two things here still touch every op, and neither changes what it does. The DoOperation
+    /// postfix notes which heightmap an op moved, and the prefix rebuilds one a fill has already
+    /// raised this frame before any op reads it (see Fill.Freshen). That second one only makes an
+    /// op read the ground that is really there, which is what vanilla's own op would read had the
+    /// rebuild come at the end of the frame as usual.
     /// </summary>
     internal static class JafnaPatches
     {
@@ -32,6 +52,9 @@ namespace Jafna
         private static bool _bound;
         private static bool _bindFailed;
         private static bool _skillReported;
+
+        private static readonly Keys.Tap HoldTap = new Keys.Tap();
+        private static float _heightAtPress;
 
         /// <summary>
         /// Bound lazily and inside a try/catch for the reason spelled out in Flat.cs: a
@@ -135,7 +158,8 @@ namespace Jafna
             {
                 line += "Piece groundPiece=" + piece.m_groundPiece
                         + " allowAltGroundPlacement=" + piece.m_allowAltGroundPlacement
-                        + " clipGround=" + piece.m_clipGround + ". ";
+                        + " clipGround=" + piece.m_clipGround
+                        + " costs " + Cost(piece) + ". ";
             }
 
             if (prefab.TryGetComponent(out TerrainModifier mod))
@@ -155,6 +179,28 @@ namespace Jafna
             JafnaPlugin.Log.LogInfo(line);
         }
 
+        /// <summary>
+        /// A piece's own price as a log fragment. Here because whether a flattening entry costs
+        /// stone decides whether the fill has to leave some in the pack for it (Fill.OwnCost),
+        /// and a piece's m_resources is asset data like everything else in this line.
+        /// </summary>
+        private static string Cost(Piece piece)
+        {
+            if (piece.m_resources == null || piece.m_resources.Length == 0) return "nothing";
+
+            string cost = "";
+
+            foreach (Piece.Requirement req in piece.m_resources)
+            {
+                if (req == null || req.m_resItem == null) continue;
+
+                cost += (cost.Length > 0 ? ", " : "") + req.m_resItem.name + " x" + req.GetAmount(0)
+                        + (req.m_upgraderResource ? " (upgrade only)" : "");
+            }
+
+            return cost.Length > 0 ? cost : "nothing";
+        }
+
         // -- 1. How far the op reaches ---------------------------------------------------
 
         /// <summary>
@@ -163,6 +209,9 @@ namespace Jafna
         /// DoOperation alone would therefore produce a swing that is wide in the zone under
         /// your feet and stops dead at the zone border - a straight edge through the middle of
         /// a platform, appearing only sometimes, which is a miserable thing to chase.
+        ///
+        /// A swing only. Reach.Earned reads the local player's Crafting, and before 2026-09-29 any
+        /// flattening op made on this machine was widened by it, Devkit's flatten included.
         /// </summary>
         [HarmonyPostfix]
         [HarmonyPatch(typeof(TerrainOp), nameof(TerrainOp.GetRadius))]
@@ -170,6 +219,7 @@ namespace Jafna
         {
             if (!JafnaConfig.Enabled.Value) return;
             if (!Reach.IsFlatten(__instance.m_settings)) return;
+            if (!Reach.IsSwing(__instance)) return;
 
             __result = Mathf.Max(__result, Reach.Earned(__instance.m_settings, Player.m_localPlayer));
         }
@@ -177,12 +227,16 @@ namespace Jafna
         // -- 2. Sending the radius --------------------------------------------------------
 
         /// <summary>
-        /// Replaces ApplyOperation with the same six lines plus two. It is a replacement rather
-        /// than a postfix because the package is built and sent inside one method, so there is
-        /// no moment between the two to hook.
+        /// Replaces ApplyOperation with the same six lines plus two, for the local player's own
+        /// swing. It is a replacement rather than a postfix because the package is built and sent
+        /// inside one method, so there is no moment between the two to hook.
         ///
-        /// Skipped entirely when there is nothing to add, so an ordinary op on an ordinary
-        /// swing goes through vanilla's own code and this mod is not in the path at all.
+        /// Every other op goes through vanilla's own code, and this mod is not in its path at all.
+        /// A swing takes this path every time, at the hoe's own width with nothing held and no fill
+        /// as well, because the package is how the owner tells a swing from every other op (see
+        /// Reach's class comment). Until 2026-09-29 a swing with nothing to add went to vanilla
+        /// too. That was fine only while the owner continued the flat under any flattening op,
+        /// which is the thing that turned out to be wrong.
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(typeof(TerrainComp), nameof(TerrainComp.ApplyOperation))]
@@ -190,18 +244,23 @@ namespace Jafna
         {
             if (!JafnaConfig.Enabled.Value) return true;
             if (modifier == null || !Reach.IsFlatten(modifier.m_settings)) return true;
+            if (!Reach.IsSwing(modifier)) return true;
 
-            float radius = Reach.Earned(modifier.m_settings, Player.m_localPlayer);
+            Player player = Player.m_localPlayer;
+            float radius = Reach.Earned(modifier.m_settings, player);
 
-            // Sent when either half of the mod has something to say. A held height has to
-            // travel even at vanilla width, and it is the held case that also settles a swing
-            // crossing a zone line: every zone gets the same number rather than each deciding
-            // for itself from its own half of the footprint.
-            bool held = Held.Active;
-            if (radius <= Reach.VanillaRadius(modifier.m_settings) && !held) return true;
+            // How far from the middle the pack pays to raise the ground, or -1 for no fill.
+            // Decided once per swing and cached on the op, so every zone this call is repeated for
+            // gets the same distance. See Fill.Plan.
+            float fill = Fill.Plan(modifier, player, radius);
 
+            // Invalid as well as missing hands the call back to vanilla, whose own first line is
+            // the IsValid check with an error message. InvokeRPC dereferences the ZDO, so an
+            // invalid view here would throw out of TerrainOp.Awake and leave the swing's other
+            // zones without their op and the op object in the scene. Every swing takes this path,
+            // so this is the check every swing gets.
             ZNetView nview = Reach.View(__instance);
-            if (nview == null) return true;
+            if (nview == null || !nview.IsValid()) return true;
 
             ZPackage pkg = new ZPackage();
             pkg.Write(modifier.transform.position);
@@ -209,7 +268,7 @@ namespace Jafna
             if (modifier.m_settings.m_rotation) pkg.Write(modifier.transform.forward);
             modifier.m_settings.Serialize(pkg, modifier.gameObject);
 
-            Reach.Append(pkg, radius, held, Held.Height);
+            Reach.Append(pkg, radius, Held.Active, Held.Height, fill);
 
             nview.InvokeRPC("RPC_ApplyOperation", pkg);
             return false;
@@ -219,30 +278,36 @@ namespace Jafna
 
         /// <summary>
         /// Reads the appended radius before vanilla parses the package, and puts the read
-        /// position back so vanilla sees exactly what it expects.
+        /// position back so vanilla sees exactly what it expects. Finding it at all is what makes
+        /// the op a Jafna swing for the prefix on DoOperation; not finding it makes the op vanilla.
         ///
         /// It writes unconditionally, including the "nothing there" value. Leaving a stale
         /// radius behind would apply one player's Crafting to the next player's swing, and
         /// because both swings are perfectly ordinary it would look like the mod randomly
-        /// choosing a width.
+        /// choosing a width. A stale fill reach would be worse: it would raise ground on the
+        /// next swing and bill whoever sent that one. And any stale value at all would pass the
+        /// next vanilla op off as a swing and continue a flat under it.
+        ///
+        /// <paramref name="sender"/> is the original method's own first argument, the peer that
+        /// swung. It is kept because the fill's bill has to go back to that player's machine.
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(typeof(TerrainComp), "RPC_ApplyOperation")]
-        private static void ReceiveReach(ZPackage pkg)
+        private static void ReceiveReach(long sender, ZPackage pkg)
         {
             if (!JafnaConfig.Enabled.Value)
             {
-                Reach.SetIncoming(-1f, false, 0f);
+                Reach.SetIncoming(-1f, false, 0f, -1f, 0L);
                 return;
             }
 
-            if (Reach.Peek(pkg, out float radius, out bool held, out float height))
+            if (Reach.Peek(pkg, out float radius, out bool held, out float height, out float fill))
             {
-                Reach.SetIncoming(radius, held, height);
+                Reach.SetIncoming(radius, held, height, fill, sender);
             }
             else
             {
-                Reach.SetIncoming(-1f, false, 0f);
+                Reach.SetIncoming(-1f, false, 0f, -1f, 0L);
             }
         }
 
@@ -261,9 +326,29 @@ namespace Jafna
         [HarmonyPatch(typeof(TerrainComp), "DoOperation")]
         private static void LevelTo(TerrainComp __instance, ref Vector3 pos, ref TerrainOp.Settings modifier)
         {
-            if (!JafnaConfig.Enabled.Value) return;
+            if (!JafnaConfig.Enabled.Value)
+            {
+                // A fill that landed earlier in this frame still has to be seen by this op, even
+                // with the mod switched off in between.
+                Fill.Freshen(__instance, false);
+                return;
+            }
 
-            float incoming = Reach.TakeIncoming(out bool held, out float heldHeight);
+            float incoming = Reach.TakeIncoming(out bool held, out float heldHeight, out float fill, out long sender);
+
+            // First, before anything below reads a height - Flat.Target does, and so does every
+            // vanilla op this prefix lets through. See Fill.Freshen for the two cases it covers.
+            Fill.Freshen(__instance, Fill.Wants(modifier, fill));
+
+            // No package, no swing. A swinger running Jafna appends one to its own swing every
+            // time and to nothing else, so an op without one is a location's own shaping, another
+            // mod's op, Devkit's flatten or a swing from a player without Jafna, and it is applied
+            // exactly as vanilla has it: no wider, no held height, no flat continued under it. The
+            // last of those is the one that was caught. Before 2026-09-29 this continued the flat
+            // under any flattening op, and a scenario log showed Devkit's flatten levelled 0.2 m
+            // below its own target because its circle touched a flat. Peek answers a radius only
+            // when it found the package, and a swing's radius is never below the tool's own.
+            if (incoming <= 0f) return;
 
             if (!Reach.IsFlatten(modifier)) return;
 
@@ -303,6 +388,12 @@ namespace Jafna
                 }
             }
 
+            // Once the height is settled and before vanilla's smooth runs, because the fill is
+            // measured against the height this swing is actually aiming at, and the smooth's own
+            // eased add is what lands each filled point on it. Does nothing unless the swinger asked
+            // and paid.
+            Fill.Apply(__instance, pos + Vector3.up * offset, modifier, fill, sender);
+
             if (JafnaConfig.Verbose.Value)
             {
                 JafnaPlugin.Log.LogInfo(
@@ -315,6 +406,18 @@ namespace Jafna
                     + ", spread " + Flat.LastSpread.ToString("0.000") + "m"
                     + " vs tolerance " + JafnaConfig.ContinueTolerance.Value.ToString("0.000") + "m).");
             }
+        }
+
+        /// <summary>
+        /// Notes which heightmap this op just changed, so a fill later in the same frame knows it
+        /// has to rebuild before it measures. Every op, not only flattening ones: a Raise ground or
+        /// a pickaxe dig that lands first moves heights a fill would otherwise measure stale.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TerrainComp), "DoOperation")]
+        private static void NoteShaped(TerrainComp __instance, TerrainOp.Settings modifier)
+        {
+            Fill.Touched(__instance, modifier);
         }
 
         // -- 5. The ward footprint, and the readout ---------------------------------------
@@ -362,7 +465,20 @@ namespace Jafna
             // knows a levelling tool is out and where the ghost is resting. A key that worked
             // with the hoe put away would be a key that fires while you are doing something
             // else entirely.
-            if (Keys.Pressed(JafnaConfig.HoldKey.Value)) Held.Toggle(point.y);
+            //
+            // A tap, acted on when the key comes back up (see Keys.Tap for the Alt+Tab bug that
+            // made it one). The height is still the one under the crosshair when the key went
+            // down, which is what the key pinned before, and what the panel was showing at the
+            // moment you pressed it.
+            switch (HoldTap.Read(JafnaConfig.HoldKey.Value))
+            {
+                case Keys.Edge.Down:
+                    _heightAtPress = point.y;
+                    break;
+                case Keys.Edge.Tapped:
+                    Held.Toggle(_heightAtPress);
+                    break;
+            }
 
             float radius = Reach.Earned(settings, __instance);
 
@@ -373,7 +489,15 @@ namespace Jafna
                 _placementStatus(__instance) = Player.PlacementStatus.PrivateZone;
             }
 
-            Readout.Update(__instance, settings, point, radius, wardClear);
+            // Whether a swing now would land at all. A ward is only one of the ways it can be
+            // refused. Vanilla marks the ghost invalid for a dozen other reasons, and when the ray
+            // finds no terrain - inside a dungeon, or aimed at a floor - it switches the ghost off
+            // and returns before moving it, so the point read above is wherever the ghost last
+            // was. The price of raising ground is shown only when this is true, so it is never the
+            // price of a swing that cannot happen, quoted at a spot the crosshair has left.
+            bool lands = _placementStatus(__instance) == Player.PlacementStatus.Valid && ghost.activeSelf;
+
+            Readout.Update(__instance, settings, point, radius, wardClear, lands);
         }
 
         /// <summary>
@@ -405,6 +529,25 @@ namespace Jafna
         internal static float CraftingLevel(Player player)
         {
             return player == null ? 0f : player.GetSkillFactor(Skills.SkillType.Crafting) * 100f;
+        }
+
+        // -- 6. Hearing the bill ----------------------------------------------------------
+
+        /// <summary>
+        /// Registers the fill's bill on every zone's compiler, on every client.
+        ///
+        /// On the compiler's own view rather than as a global routed method, for two reasons. It
+        /// needs no bookkeeping about when a session starts - the compiler registers its own
+        /// RPC_ApplyOperation in this same Awake, and the bill simply lives and dies beside it.
+        /// And the bill is about one zone's ground, so it belongs on the thing that owns that
+        /// ground. A client without Jafna never registers it, and it is never sent one, because
+        /// a bill only answers a fill that a Jafna client asked for.
+        /// </summary>
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(TerrainComp), "Awake")]
+        private static void HearBill(TerrainComp __instance)
+        {
+            Fill.Listen(__instance);
         }
     }
 }

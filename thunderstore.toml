@@ -7,7 +7,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "Ezomic"
 name = "Jafna"
-versionNumber = "1.0.0"
+versionNumber = "1.1.0"
 description = "Levelling with the hoe continues the flat ground it touches, and your Crafting decides how far it reaches."
 websiteUrl = "https://github.com/Ezomic/valheim-jafna"
 containsNsfwContent = false

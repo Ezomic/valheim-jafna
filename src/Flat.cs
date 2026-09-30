@@ -34,6 +34,13 @@ namespace Jafna
     ///
     /// A swing that touches no levelled ground falls through to vanilla untouched, which is
     /// what makes starting a new platform at a new height still work.
+    ///
+    /// Only a swing is ever continued. The zone owner asks <see cref="Target"/> about an op only
+    /// when it arrived carrying Jafna's package, which a swinger appends to its own swing and to
+    /// nothing else (see Reach's class comment), and the build panel and the fill's estimate ask
+    /// it about the entry in the player's hands. Any other op has a target of its own and is not continuing anything:
+    /// until 2026-09-29 the owner asked about every flattening op, and Devkit's flatten was
+    /// caught levelled 0.2 m below its own target, to a flat its circle happened to touch.
     /// </summary>
     internal static class Flat
     {
