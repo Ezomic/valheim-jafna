@@ -1,0 +1,16 @@
+{
+    "roadmap": [
+        {
+            "key": "stone-switch",
+            "title": "A switch for paying stone when you flatten",
+            "status": "planned",
+            "body": "Today the hoe raises low ground with stone from your pack, and the only way to turn that off is a line in a config file that the server decides on.\n\nThis adds a switch of your own, in game, that turns the stone fill off and on for you alone. Off, a swing is the hoe's own: its free metre, no stone taken. The readout says which one you are on, so a swing that took no stone is never a surprise."
+        },
+        {
+            "key": "steady-tooltip",
+            "title": "A hoe tooltip that stays one size",
+            "status": "planned",
+            "body": "The hoe's readout grows and shrinks with its text while you sweep across the ground, which makes it hard to read when you work quickly.\n\nIt becomes one tall box that never moves, with more rows and one fact on each: the height under the crosshair, the height the swing will use, where that height came from, what raising it costs, and a fixed row for warnings. Every row is always there, so nothing shifts when a value changes."
+        }
+    ]
+}
