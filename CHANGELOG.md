@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+**The hoe's tooltip stays one size.** The build panel box used to grow and shrink as you swept the
+crosshair, because the readout gained or lost lines (a warning, a price, the 8 m note) and some of
+them were long enough to wrap. It is now twelve rows in every state, in three labelled groups under
+a single warning slot: Ground (how far the ground comes up and goes down, how wide the swing is),
+Height (the crosshair, the height the swing uses, where that came from) and Cost (stone and the
+workbench). A row with nothing to say holds a dash, the warning slot reads All clear and is
+replaced in place by the one thing that is wrong, and no row is longer than the box, so it never
+grows sideways or wraps. The numbers are the same ones as before, spread over more rows, with
+Raise up to and Lower up to new.
+
+Two small wording changes follow from keeping a changing number at the end of its row: the stone row
+reads `you carry 20, needs 14` rather than the other way round, and the short-of-stone sentence
+moved into the warning slot as `Short of stone, fills only the middle`.
+
+A Devkit scenario, `jafna-readout-one-size`, runs the panel through flat ground, a fillable spot, a
+short pack and no workbench and holds the drawn line count and height equal, through a new
+`jafnareadout` console command that reads what the panel's label actually drew. Not yet seen in a
+game.
+
 ## 1.1.0 - 30 September 2026
 
 **Low ground is raised, and paid for in stone.** This reverses the call made on 20 September

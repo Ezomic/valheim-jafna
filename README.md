@@ -48,10 +48,41 @@ still start a new platform at a new height: stand clear of the old one and swing
 - **Only your own swing is changed.** Ground shaped by anything else, a location, another mod,
   a Devkit flatten or a player without Jafna, is shaped exactly as vanilla shapes it.
 - **A ward you cannot use blocks the whole swing, not just its centre.**
-- **The build panel shows the numbers**: the reach you have, the height the swing will use,
-  where that height came from, and what raising the low ground will cost.
+- **The build panel shows the numbers**, in twelve fixed rows that never change count or order:
+  what the swing does to the ground, the height it will use and where that height came from, and
+  what raising the low ground will cost. See The build panel below.
 - No new prefabs, items, recipes or saved values. A world played with Jafna is an ordinary
   world, and the ground you shaped is ground vanilla's own operations shaped.
+
+## The build panel
+
+The numbers go in the hoe's build tooltip, under the piece's own description, and the box they
+make is always the same size. A tooltip sizes itself to its text, so a readout that grew a
+warning over a bad swing and dropped a price over a good one resized the box as the crosshair
+moved, and at working speed that cannot be read. So every state writes the same rows, in the
+same places, and a row with nothing to say holds a dash:
+
+```
+All clear                              the one warning slot, red when it has something to say
+GROUND
+Raise up to: 1.20m                     the most the ground under the swing comes up
+Lower up to: 0.80m                     and the most it goes down
+Flattens 6.0m across (Crafting 52)
+HEIGHT
+Crosshair: 5.40m
+This swing: 5.00m
+Taken from: flat ground                or your crosshair, or HOLDING and the key that releases it
+COST
+Stone: you carry 20, needs 14
+Workbench: in range
+```
+
+The warning slot is replaced in place, never added to, and shows one thing in this order: a ward
+you cannot use, ground past the eight metre limit, no workbench near, then too little stone. The
+rows below it say the rest. Each row ends with the value that moves as you look around, so
+nothing after it shifts. No row is longer than the box, so none wraps onto a second line, and a
+row that would be (several kinds of item in a price, a longer language) is cut with `..` rather
+than allowed to. `ShowReadout` turns all of it off.
 
 ## Holding a height
 
@@ -66,8 +97,8 @@ a levelling tool out, press **Left Alt** and the height under your crosshair is 
 anywhere, aim anywhere, and every swing eases the ground toward that one number until you press
 again. Nothing is searched for and nothing is guessed while it is on.
 
-The panel says `HOLDING height, press LeftAlt to release` for as long as it lasts. That wording
-is deliberate: the single mistake this feature can cause is forgetting it is on, and a line
+The panel's Taken from row says `HOLDING, LeftAlt releases` for as long as it lasts. That wording
+is deliberate: the single mistake this feature can cause is forgetting it is on, and a row
 that tells you how to stop cannot be read as decoration.
 
 The key counts when you let go of it, and only when you pressed it on its own. Press another key
@@ -132,9 +163,9 @@ stone you carry. And when your stone runs out partway, the ground it did not rea
 hoe puts it, which is covered further down.
 
 Neither is left out in silence, because silence is how this started: a height on the panel and
-ground that stops short of it with nothing to say why. Ground too far below gets a line in the
-build panel before you swing, `Part of the ground here cannot be filled that high`, and the
-swing puts `Too far below to raise` in the middle of the screen. Running out of stone has its
+ground that stops short of it with nothing to say why. Ground too far below turns the panel's
+top row red before you swing, `Past 8m of the original ground`, and the swing puts
+`Too far below to raise` in the middle of the screen. Running out of stone has its
 own panel line and message, below.
 
 The price is the hoe's own. Jafna finds the Raise ground entry on the hoe, takes what it costs,
@@ -147,8 +178,8 @@ does: its entry names the workbench, and the game will not let you swing it furt
 the workbench's build range, 20 metres for a bench with no extensions, measured from where you
 stand. Filling reads the station off the same entry and follows the same rule. Out of range, a
 swing that would need stone is the hoe's alone: the ground comes up its free metre, eased the
-hoe's way, and no stone is taken. The panel says `Filling up to that height needs a Workbench
-nearby` where the price would be, and the swing puts `Raising needs a Workbench nearby` in the
+hoe's way, and no stone is taken. The panel's top row says `Filling needs a Workbench nearby`
+and its Workbench row says none near, and the swing puts `Raising needs a Workbench nearby` in the
 middle of the screen. A world with NoWorkbench set lifts the rule and so does the nocost command,
 both as they do for Raise ground. NoBuildCost does not: Raise ground is free there and still
 wants the workbench.
@@ -175,10 +206,10 @@ edge to carry on from. The first version spread the stone evenly instead, which 
 point up by the same fraction of what it needed and left not even the middle at your height.
 
 The build panel shows what a swing will cost before you take it, and that is what the swing
-takes. When you carry enough it is the price of the whole circle. When you do not, it says what
-you carry, what this swing will fill and take for it, and what all of it would cost:
-`You carry 1 Stone, this swing fills the middle for 1 Stone, all of it costs 7 Stone`. When you
-cannot pay for even the middle, it says the swing fills none of it, and that swing takes nothing.
+takes. When you carry enough it is the price of the whole circle. When you do not, the Stone row
+shows what you carry and what all of it would cost in red, and the top row says
+`Short of stone, fills only the middle`. When you cannot pay for even the middle, the top row says
+`Not enough stone to fill any of it`, and that swing takes nothing.
 
 A world with NoBuildCost set raises for free. The nocost command lifts the limit but still takes
 any stone you carry, which is what vanilla's Raise ground does as well.

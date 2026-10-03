@@ -1,0 +1,168 @@
+#! nostage
+#
+# Jafna: the build panel's box stays one size (LHM-46). The readout writes the same twelve lines in
+# every state, so sweeping the crosshair over a fillable spot, a short pack, no workbench and flat
+# ground must never add a row, take one away, or wrap one onto two.
+#
+# Four states, read one after another, and the first is the reference the rest are held to:
+#
+#   1. Flat ground with a workbench near and nothing to raise. The warning slot says All clear and
+#      the Stone and Workbench rows hold dashes.
+#   2. Low ground a paid swing lifts, with a workbench near and twenty stones. Still All clear, the
+#      Stone row now has numbers in it.
+#   3. The same kind of ground with two stones, so the pack is short. The warning slot is replaced
+#      in place by "Short of stone".
+#   4. The workbench taken down and the same kind of ground again. The warning slot is replaced in
+#      place by "Filling needs a Workbench nearby", and the Workbench row says none near.
+#
+# What each state is held to is `jafnareadout`, a console command Jafna registers, which asks the
+# build panel's own label what it drew: `lines` is the rows it laid out, `tall` the height it wants,
+# `wrapped` whether a line was longer than the box and wrapped onto a second row, and `clipped`
+# whether the widest line is wider than the room it has. Lines and tall are held equal from state to
+# state with `went ... same`, which means equal, and wrapped and clipped must read no every time.
+#
+# WHY THE PANEL IS READ STRAIGHT AFTER A `build`, with no `wait`. Same reason as section 7 of
+# jafna-auto-raise-pays-in-stone.txt: the runner goes on in the frame the button is pressed, before
+# the game has redrawn anything from the look `build` turns back afterwards, so the label still holds
+# what it said while the swing was aimed at its spot. After a `wait` it says whatever your own resting
+# look lands on. State 1 is the one exception and is read resting, on purpose: it is the flat ground.
+#
+# WHAT THIS CANNOT SEE.
+#
+#   - The state where the ground is more than 8 m below the height. No step can build a drop that
+#     deep, so the "Past 8m of the original ground" slot is a manual step below.
+#   - A ward in the swing, for the same reason as in the main scenario: no step can put one up.
+#   - A held height, which is pinned with a key. Manual step 3.
+#   - Whether the box looks the same size. The label's height and line count are read, not the
+#     background behind it. If the game's panel does not size itself to its text, `tall` stays equal
+#     for the wrong reason, so look at it once (manual step 1).
+#
+# Everything about the mound, the workbench and the gates is jafna-stone-switch.txt's, and through it
+# the main scenario's (THE MOUNDS, THE WORKBENCH): one mound of two Raise ground 3 m ahead, the
+# workbench 11 m behind and 10 m to the left, the stance on the mound 17.6 m from it. Three spots are
+# swung at from that stance, 2.5 m to its left, 2.5 m ahead and 2.5 m to its right, 3.5 m or more
+# apart so that no swing's circle reaches the next one's. Each state takes its own, because a swing
+# raises the ground it is aimed at.
+#
+# NEEDS: everything the main scenario asks (singleplayer, English, no NoWorkbench key, no nocost, a
+# strip of untouched ground no steeper than 1 in 20 with no ward, no rock, nothing built on it, no
+# other workbench within 20 m, eaten first), Jafna's AutoRaise on in the cfg, and ShowReadout on.
+# Crafting is set to 0 for the hoe's own 3 m reach. Devkit d219857 or later, for `place`, and a
+# Devkit that has `break`, `note` and `went`.
+#
+# LEAVES: one mound, three circles raised or half raised on its sides, and no workbench. Devkit empties
+# the pack and hands back the test kit.
+#
+# MANUAL STEPS, for what no step can see.
+#
+#   1. Take the hoe out and select Level ground, standing on flat ground. Expected: twelve rows under
+#      the piece's own description, headed by All clear, then GROUND, HEIGHT and COST in that order.
+#      Sweep the crosshair over a hill, a ditch, water's edge and flat ground, fast. Expected: the box
+#      never grows, shrinks or widens, and every row stays where it was, only the numbers change.
+#   2. Aim at ground more than 8 m below the height the swing will use, with a workbench near.
+#      Expected: the top row turns red and says "Past 8m of the original ground", and nothing else in
+#      the box moves.
+#   3. Press the hold key (LeftAlt) with the hoe out. Expected: "Taken from" says "HOLDING, LeftAlt
+#      releases", on the same row, and the box is the same size as before the press.
+#   4. Aim a swing so a ward you cannot use is inside it. Expected: the top row says "A ward you cannot
+#      use is in the swing" and the Stone and Workbench rows hold dashes.
+#   5. With the hoe out, switch the game's language to one with longer item names, aim at low ground
+#      with a workbench near. Expected: no row wraps. A row too long for the box is cut with ".." and
+#      loses its colours, which is the intended failure.
+
+
+# ---- setting up
+
+clear
+give Hoe:1,Stone:2
+skill Crafting 0
+tool Hoe mud_road_v2
+
+place piece_workbench -11 -10
+wait 1
+
+onscreen Flattens yes
+onscreen HOLDING no
+centre (clearing the message line) no
+
+
+# ---- 1: flat ground, resting, the reference
+
+wait 1
+onscreen GROUND yes
+onscreen All clear yes
+mod jafnareadout
+printed wrapped=no yes
+printed clipped=no yes
+note lines jafnareadout lines=(\d+)
+note tall jafnareadout tall=([\d.]+)
+
+
+# ---- the mound, 3 m ahead
+
+wait 2
+move 3 0
+mark
+landed
+move -3 0
+build raise_v2 3 0
+wait 1
+place raise_v2 3 0
+wait 1
+carrying Stone 0
+height 3 0 1.9 0.4
+
+
+# ---- 2: low ground a paid swing lifts, workbench near, twenty stones, 2.5 m to the left
+
+wait 2
+move 3.5 0
+landed
+give Stone:20
+tool Hoe mud_road_v2
+wait 1
+
+build mud_road_v2 0 -2.5
+onscreen All clear yes
+onscreen needs yes
+mod jafnareadout
+printed wrapped=no yes
+printed clipped=no yes
+went lines jafnareadout lines=(\d+) same
+went tall jafnareadout tall=([\d.]+) same
+
+
+# ---- 3: the same, short of stone, two of them, 2.5 m ahead
+
+wait 2
+strip Stone
+give Stone:2
+tool Hoe mud_road_v2
+wait 1
+
+build mud_road_v2 2.5 0
+onscreen Short of stone yes
+mod jafnareadout
+printed wrapped=no yes
+printed clipped=no yes
+went lines jafnareadout lines=(\d+) same
+went tall jafnareadout tall=([\d.]+) same
+
+
+# ---- 4: no workbench, twenty stones, 2.5 m to the right
+
+wait 2
+break piece_workbench 30
+wait 1
+strip Stone
+give Stone:20
+tool Hoe mud_road_v2
+wait 1
+
+build mud_road_v2 0 2.5
+onscreen none near yes
+mod jafnareadout
+printed wrapped=no yes
+printed clipped=no yes
+went lines jafnareadout lines=(\d+) same
+went tall jafnareadout tall=([\d.]+) same

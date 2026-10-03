@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
 
@@ -30,6 +31,46 @@ namespace Jafna
         private static string _written;
 
         private static string _lines;
+
+        /// <summary>
+        /// How many lines the box holds, and the reason the count is fixed.
+        ///
+        /// The panel is the game's own tooltip, which sizes itself to its text, so a readout that
+        /// grew a warning line over a bad swing and lost its price line over a good one resized the
+        /// box as the crosshair moved, and at working speed that is unreadable (LHM-46). The cure is
+        /// not shorter text, it is text that never changes shape: the same lines in the same
+        /// places in every state, a dash where a line has nothing to say, and one warning slot that
+        /// is replaced in place instead of added to. Robbin picked this layout from a mockup, with
+        /// the Ground group above Height because what the swing does to the ground is the part he
+        /// wants first.
+        ///
+        ///   warning slot            All clear, or the one thing that is wrong, in red
+        ///   GROUND                  what the swing does to the ground
+        ///     Raise up to / Lower up to / Flattens
+        ///   HEIGHT                  which height, and where it came from
+        ///     Crosshair / This swing / Taken from
+        ///   COST                    stone and the workbench
+        ///     Stone / Workbench
+        ///
+        /// Nothing may be added to or removed from that list in a branch of the code below. A new
+        /// fact either takes a row of its own that is always written, or goes into the warning slot.
+        /// </summary>
+        internal const int Rows = 12;
+
+        /// <summary>
+        /// The longest a line may be, in visible characters after the game has put its own names in.
+        /// A line longer than the box wraps, and a wrapped line is a line more. The longest row
+        /// written here is 38. Devkit's `jafnareadout` checks the real box for a wrapped line.
+        /// </summary>
+        private const int MaxChars = 40;
+
+        private const string Dim = "#a79d86";
+        private const string Red = "#ff6060";
+
+        private static readonly System.Text.RegularExpressions.Regex Tags =
+            new System.Text.RegularExpressions.Regex("<[^>]*>");
+
+        private static readonly List<Heightmap> Maps = new List<Heightmap>();
 
         /// <summary>
         /// Recomputed by the placement-ghost postfix while a level op is selected. Kept as a
@@ -66,175 +107,217 @@ namespace Jafna
                 target = Flat.Target(comp, probe, radius, Reach.IsSquare(settings), out source);
             }
 
-            // Vanilla's own radius, so the line can say what the skill actually bought rather
-            // than only what the swing covers.
-            float vanilla = Reach.VanillaRadius(settings);
+            Fill.Terms terms = Fill.Terms.None;
+            string cost = null, all = null, carried = null, own = null, station = null;
+            bool far = false;
 
-            // Each of these ends with the height, so the one value that changes as you look
-            // around is the last thing on the line and moves nothing when it does.
-            string reason;
-            switch (source)
+            // Only while the swing would actually land. A refused swing raises nothing and costs
+            // nothing, and a price on screen beside a refusal reads as the price of being refused.
+            if (wardClear && lands)
             {
-                case Flat.Source.Held:
-                    // Worded as an instruction rather than a state, because the one failure
-                    // this feature can produce is forgetting it is on: you walk somewhere else,
-                    // swing, and the ground moves toward a number you set five minutes ago.
-                    // A line that says how to stop is a line that cannot be misread as scenery.
-                    reason = "HOLDING height, press " + JafnaConfig.HoldKey.Value + " to release. Levelling to ";
-                    break;
-                case Flat.Source.ContinuedFlat:
-                    reason = "Continuing ground you already flattened, to ";
-                    break;
-                case Flat.Source.Disagreed:
-                    reason = "Two heights meet here, so using your crosshair at ";
-                    break;
-                case Flat.Source.TooLittle:
-                    reason = "Too little flat ground to follow, so using your crosshair at ";
-                    break;
-                default:
-                    reason = "Fresh ground, levelling to your crosshair at ";
-                    break;
+                terms = Fill.Quote(
+                    player, settings, point, radius,
+                    out cost, out all, out carried, out own, out far, out station);
             }
 
-            // Written as width rather than radius, and as sentences rather than labels.
-            //
-            // The first version of this line read "Reach 5,4m at Crafting 52 (tool: 3,0m)" and
-            // was not clear, which is a fair complaint about all three of its parts. "Reach" is
-            // a radius, but what a player watches is how wide the patch under them goes, so the
-            // number on screen disagreed with the number in their eyes by a factor of two.
-            // "tool:" named a thing without saying what about it. And two bare figures side by
-            // side leave you to work out which is the mod and which is the game.
-            string text;
+            Gap(point, radius, target, out float raise, out float lower);
 
             string crafting = JafnaPatches.CraftingLevel(player).ToString("0");
 
-            // Nothing on this line changes while the tool is out - the reach only moves when
-            // Crafting does - so it is written plainly with no padding at all.
-            if (radius > vanilla + 0.01f)
+            // Each row ends with whatever changes as you look around, so the one value that moves
+            // every frame is the last thing on its line and shifts nothing when it does.
+            var rows = new List<string>(Rows)
             {
-                text = "Flattens " + Num((radius * 2f).ToString("0.0") + "m") + " across,"
-                       + " up from the hoe's own " + (vanilla * 2f).ToString("0.0") + "m"
-                       + " (Crafting " + crafting + ")";
-            }
-            else
-            {
-                // Below about Crafting 25 the curve has not caught the hoe up yet. Saying so is
-                // better than showing two identical numbers, which reads as the mod being broken
-                // rather than as the skill not being high enough.
-                text = "Flattens " + Num((radius * 2f).ToString("0.0") + "m") + " across,"
-                       + " the hoe's own reach (Crafting " + crafting + " adds nothing yet)";
-            }
+                Slot(wardClear, far, terms, own, station),
 
-            text += "\n" + reason + Num(target.ToString("0.00") + "m");
+                Header("GROUND"),
+                Row("Raise up to: ", Metres(raise)),
+                Row("Lower up to: ", Metres(lower)),
+                Row("Flattens ", Num((radius * 2f).ToString("0.0") + "m"), " across (Crafting ", crafting, ")"),
 
-            if (!wardClear)
-            {
-                text += "\n<color=#ff6060>A ward you cannot use is inside this swing.</color>";
-            }
-            else if (lands)
-            {
-                // Only while the swing would actually land. A refused swing raises nothing and
-                // costs nothing, and a price on screen beside a refusal reads as the price of
-                // being refused.
-                string fill = FillLine(player, settings, point, radius);
-                if (fill != null) text += "\n" + fill;
-            }
+                Header("HEIGHT"),
+                Row("Crosshair: ", Num(probe.y.ToString("0.00") + "m")),
+                Row("This swing: ", Num(target.ToString("0.00") + "m")),
+                Row("Taken from: ", Num(From(source))),
 
-            _lines = text;
+                Header("COST"),
+                StoneRow(terms, cost, all, carried),
+                WorkbenchRow(terms)
+
+                // LHM-42's stone switch belongs here as the last row of the Cost group, for
+                // example "Stone fill is on, J turns it off". It is a row that is always written,
+                // so merging it makes Rows 13 and moves nothing else in the box.
+            };
+
+            _lines = string.Join("\n", rows.ToArray());
         }
 
         /// <summary>
-        /// What raising the low ground under this swing will take out of the pack, or null when
-        /// nothing under it needs raising and none of it is too far below to raise.
-        ///
-        /// Silent when there is nothing to raise, which is most of the time. A line that said
-        /// "costs 0" on every flat swing would teach a player to stop reading it before the swing
-        /// where it matters.
-        ///
-        /// "That height" is the height at the end of the line above, which is the one the swing
-        /// is filling toward. The cost is the number that moves as you look around, so it goes
-        /// last, by the same rule as every other line here.
-        ///
-        /// When the pack is short, the line says what this swing will actually do, because a
-        /// short swing fills the middle of the patch and leaves the rest (see Fill's class
-        /// comment), and a price for the whole patch is not what it charges. What the pack holds
-        /// goes first and stays still, then what this swing fills and takes, then what all of it
-        /// would cost. That puts two moving numbers on one line, which the rule above is against,
-        /// and it is accepted: this swing's price moves least, because a short swing spends about
-        /// everything you carry, so the price of the whole patch, which moves with every step of
-        /// the aim, is the one that goes last. When even the middle is more than the pack pays for,
-        /// the line says the swing fills nothing, since that swing is left to the hoe's own easing
-        /// and takes nothing.
-        ///
-        /// Out of range of the workbench Raise ground needs, the line says that instead of a price
-        /// and nothing else, because that swing takes no stone whatever the pack holds, and a price
-        /// beside it would read as what it is about to charge. Only where a swing would need stone,
-        /// by the same silence rule as the price: a reminder on every flat swing away from a
-        /// bench would be scenery within the hour.
-        ///
-        /// When the entry itself costs some of the same item, the short lines say so after what
-        /// you carry. That stone is taken by vanilla after the swing and the fill leaves it alone,
-        /// so without the clause "you carry 5, filling costs 5" would read as enough and the
-        /// swing would then say it ran short. The other lines leave it out, because vanilla's
-        /// own requirement list in the same panel already shows it.
-        ///
-        /// Ground too far below the height for the game to ever allow gets a line of its own
-        /// under the price, and on its own when that is all there is. Without it the panel shows a
-        /// height and the ground stops short of it with nothing to say why, which is the complaint
-        /// the fill was built to answer. Under the price rather than above it, so the price line
-        /// does not jump up and down as that line comes and goes with the aim.
-        ///
-        /// Item names are written as the game's own $ tokens and come out in the player's
-        /// language, because the build panel localises the description on every frame it draws.
+        /// The warning slot: always one line, "All clear" or the single most important thing that
+        /// is wrong. In order: a ward that blocks the swing, ground the game will never let it
+        /// reach, a swing that cannot be paid for because no workbench is near, then running short
+        /// of stone. Only the first is shown and the rows below say the rest, so a second problem
+        /// never makes the slot taller.
         /// </summary>
-        private static string FillLine(Player player, TerrainOp.Settings settings, Vector3 point, float radius)
+        private static string Slot(bool wardClear, bool far, Fill.Terms terms, string own, string station)
         {
-            Fill.Terms terms = Fill.Quote(
-                player, settings, point, radius,
-                out string cost, out string all, out string carried, out string own, out bool far,
-                out string station);
-
-            string pack = "You carry " + carried + (string.IsNullOrEmpty(own) ? "" : ", the swing itself takes " + own);
-            string line;
+            if (!wardClear) return Warn("A ward you cannot use is in the swing");
+            if (far) return Warn("Past 8m of the original ground");
 
             switch (terms)
             {
-                case Fill.Terms.Free:
-                    line = "Filling up to that height is free in this world";
-                    break;
-                case Fill.Terms.Covered:
-                    line = "Filling up to that height is already paid for";
-                    break;
-                case Fill.Terms.Paid:
-                    line = "Filling up to that height costs " + Num(cost);
-                    break;
-                case Fill.Terms.Short:
-                    line = pack + ", this swing fills the middle for " + Num(cost) + ", all of it costs " + Num(all);
-                    break;
-                case Fill.Terms.ShortCovered:
-                    line = pack + ", the middle is already paid for, all of it costs " + Num(all);
-                    break;
-                case Fill.Terms.Unaffordable:
-                    line = pack + ", not enough to fill any of it, all of it costs " + Num(all);
-                    break;
                 case Fill.Terms.NoStation:
-                    line = "Filling up to that height needs " + station + " nearby";
-                    break;
+                    return Warn("Filling needs " + station + " nearby");
+                case Fill.Terms.Short:
+                case Fill.Terms.ShortCovered:
+                    // The entry's own cost is taken by vanilla after the fill leaves it alone, so
+                    // "you carry 5, needs 31" would read as five to spend when some of it is not.
+                    return Warn(string.IsNullOrEmpty(own)
+                        ? "Short of stone, fills only the middle"
+                        : "Short, the swing itself takes " + own);
+                case Fill.Terms.Unaffordable:
+                    return Warn("Not enough stone to fill any of it");
                 default:
-                    line = null;
-                    break;
+                    return Fit("<color=" + Dim + ">All clear</color>");
             }
+        }
 
-            if (!far) return line;
-
-            if (line == null)
+        private static string StoneRow(Fill.Terms terms, string cost, string all, string carried)
+        {
+            switch (terms)
             {
-                return "The ground here cannot be filled that high, the game keeps ground within 8m of "
-                       + "where the world made it";
+                case Fill.Terms.Free:
+                    return Row("Stone: ", Num("free in this world"));
+                case Fill.Terms.Covered:
+                    return Row("Stone: ", Num("already paid for"));
+                case Fill.Terms.Paid:
+                    return Row("Stone: you carry ", Num(carried), ", needs ", Num(cost));
+                case Fill.Terms.Short:
+                case Fill.Terms.ShortCovered:
+                case Fill.Terms.Unaffordable:
+                    return Row("Stone: you carry ", Num(carried), ", needs ", Bad(all));
+                default:
+                    return Row("Stone: ", Num("-"));
             }
+        }
 
-            return line + "\nPart of the ground here cannot be filled that high, the game keeps ground within "
-                   + "8m of where the world made it";
+        private static string WorkbenchRow(Fill.Terms terms)
+        {
+            switch (terms)
+            {
+                case Fill.Terms.None:
+                    return Row("Workbench: ", Num("-"));
+                case Fill.Terms.NoStation:
+                    return Row("Workbench: ", Bad("none near"));
+                default:
+                    return Row("Workbench: ", Num("in range"));
+            }
+        }
+
+        private static string From(Flat.Source source)
+        {
+            switch (source)
+            {
+                case Flat.Source.Held:
+                    // Worded as an instruction rather than a state, because the one failure this
+                    // feature can produce is forgetting it is on: you walk somewhere else, swing,
+                    // and the ground moves toward a number you set five minutes ago. The word
+                    // HOLDING stays because the scenarios assert its absence while nothing is held,
+                    // and a check for a word that no longer exists would pass for nothing.
+                    return "HOLDING, " + JafnaConfig.HoldKey.Value + " releases";
+                case Flat.Source.ContinuedFlat:
+                    return "flat ground";
+                case Flat.Source.Disagreed:
+                    return "crosshair, heights disagree";
+                case Flat.Source.TooLittle:
+                    return "crosshair, too little flat";
+                default:
+                    return "your crosshair";
+            }
+        }
+
+        /// <summary>
+        /// How far the ground under the swing sits below and above the height it will use, as the
+        /// largest gap in each direction, read off the grid points the fill walks. A swing does not
+        /// move every point the whole gap (the hoe eases the edge less than the middle), so these
+        /// are the most the ground will change, not what it changes everywhere.
+        /// </summary>
+        private static void Gap(Vector3 point, float radius, float target, out float raise, out float lower)
+        {
+            raise = 0f;
+            lower = 0f;
+
+            Maps.Clear();
+            Heightmap.FindHeightmap(point, radius, Maps);
+
+            for (int i = 0; i < Maps.Count; i++)
+            {
+                Heightmap hmap = Maps[i];
+                if (hmap == null) continue;
+
+                float reach = radius / hmap.m_scale;
+                if (reach <= 0f) continue;
+
+                hmap.WorldToVertex(point, out int cx, out int cy);
+
+                int span = Mathf.CeilToInt(reach);
+                int pitch = hmap.m_width + 1;
+                float baseY = hmap.transform.position.y;
+                Vector2 middle = new Vector2(cx, cy);
+
+                for (int iy = cy - span; iy <= cy + span; iy++)
+                {
+                    for (int ix = cx - span; ix <= cx + span; ix++)
+                    {
+                        if (ix < 0 || iy < 0 || ix >= pitch || iy >= pitch) continue;
+                        if (Vector2.Distance(middle, new Vector2(ix, iy)) > reach) continue;
+
+                        float gap = target - (hmap.GetHeight(ix, iy) + baseY);
+                        if (gap > raise) raise = gap;
+                        if (-gap > lower) lower = -gap;
+                    }
+                }
+            }
+        }
+
+        private static string Metres(float value)
+        {
+            return Num(value < 0.01f ? "-" : value.ToString("0.00") + "m");
+        }
+
+        private static string Header(string name)
+        {
+            return "<color=" + Dim + ">" + name + "</color>";
+        }
+
+        private static string Warn(string text)
+        {
+            return Fit("<color=" + Red + ">" + text + "</color>");
+        }
+
+        private static string Bad(string text)
+        {
+            return "<color=" + Red + ">" + text + "</color>";
+        }
+
+        private static string Row(params string[] parts)
+        {
+            return Fit(string.Concat(parts));
+        }
+
+        /// <summary>
+        /// Holds a line to <see cref="MaxChars"/>. Measured after the game has put its own names in
+        /// (item names are $ tokens that come out longer or shorter in the player's language), and
+        /// cut as plain text with ".." if it is still too long, which loses the colours on that line
+        /// and nothing else. That is the rare case, a price of several kinds of item, and a plain
+        /// line is a better failure than a wrapped one.
+        /// </summary>
+        private static string Fit(string line)
+        {
+            string shown = Localization.instance != null ? Localization.instance.Localize(line) : line;
+            string plain = Tags.Replace(shown, "");
+
+            return plain.Length <= MaxChars ? shown : plain.Substring(0, MaxChars - 2) + "..";
         }
 
         internal static void Clear()
