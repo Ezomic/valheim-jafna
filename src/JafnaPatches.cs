@@ -480,6 +480,11 @@ namespace Jafna
                     break;
             }
 
+            // A plain press, read here for the same reason as the hold key: this is the one place
+            // that already knows a levelling tool is out. Before the readout is built, so the
+            // panel shows the state the press just made.
+            if (Keys.Pressed(JafnaConfig.StoneFillKey.Value)) StoneSwitch.Flip(__instance);
+
             float radius = Reach.Earned(settings, __instance);
 
             bool wardClear = Reach.FootprintClear(point, radius, Reach.IsSquare(settings));
