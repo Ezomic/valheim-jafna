@@ -15,8 +15,15 @@ namespace Jafna
     /// and how wide its widest line is against the room it has. A scenario runs it in each state
     /// and holds the line count and the height equal with `went ... same`.
     ///
-    /// Not named `jafna`, which the stone switch's console command takes on its own branch.
-    /// isCheat false: it only reads.
+    /// It also reads Jafna's own string, apart from the vanilla description above it: `rows` is how
+    /// many lines that is (always Readout.Rows), `shown` whether the label ends with it, `cut`
+    /// whether any row had to be cut with "..", and `stone` and `bench` whether those two rows
+    /// hold a dash or text.
+    ///
+    /// A development command that ships in the public DLL, kept on purpose so a scenario can run
+    /// against a release build, and the reason this file pulls in TextMeshPro and the UI. Not named
+    /// `jafna`, which the stone switch's console command takes on its own branch. isCheat false:
+    /// it only reads, so it is available with cheats off.
     /// </summary>
     internal static class ReadoutProbe
     {
@@ -31,10 +38,16 @@ namespace Jafna
                 _registered = true;
 
                 new Terminal.ConsoleCommand("jafnareadout",
-                    "- how many lines the build panel's description drew, how tall it is and whether "
+                    "- dev: how many lines the build panel's description drew, how tall it is and whether "
                     + "a line wrapped, for a scenario to hold equal from state to state",
                     OnCommand, isCheat: false);
             }
+        }
+
+        private static string RowKind(string[] rows, int at)
+        {
+            if (at >= rows.Length) return "missing";
+            return Readout.Plain(rows[at]).EndsWith(" -") ? "dash" : "text";
         }
 
         private static void OnCommand(Terminal.ConsoleEventArgs args)
@@ -66,6 +79,17 @@ namespace Jafna
 
             float room = label.rectTransform.rect.width - label.margin.x - label.margin.z;
 
+            string ours = Readout.Lines;
+            string[] rows = ours == null ? new string[0] : ours.Split('\n');
+
+            bool cut = false;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                if (Readout.Plain(rows[i]).EndsWith("..")) cut = true;
+            }
+
+            string shown = ours != null && label.text.EndsWith(ours) ? "yes" : "no";
+
             // name=value with no spaces inside, so Devkit's `note` and `printed` steps can match it.
             term.AddString("jafnareadout lines=" + drawn
                 + " written=" + written
@@ -73,7 +97,12 @@ namespace Jafna
                 + " tall=" + label.preferredHeight.ToString("0.0", CultureInfo.InvariantCulture)
                 + " widest=" + widest.ToString("0.0", CultureInfo.InvariantCulture)
                 + " room=" + room.ToString("0.0", CultureInfo.InvariantCulture)
-                + " clipped=" + (widest > room + 0.02f ? "yes" : "no"));
+                + " clipped=" + (widest > room + 0.02f ? "yes" : "no")
+                + " rows=" + rows.Length
+                + " shown=" + shown
+                + " cut=" + (cut ? "yes" : "no")
+                + " stone=" + RowKind(rows, Readout.StoneAt)
+                + " bench=" + RowKind(rows, Readout.BenchAt));
         }
     }
 }

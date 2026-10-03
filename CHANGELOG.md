@@ -12,14 +12,26 @@ replaced in place by the one thing that is wrong, and no row is longer than the 
 grows sideways or wraps. The numbers are the same ones as before, spread over more rows, with
 Raise up to and Lower up to new.
 
-Two small wording changes follow from keeping a changing number at the end of its row: the stone row
-reads `you carry 20, needs 14` rather than the other way round, and the short-of-stone sentence
-moved into the warning slot as `Short of stone, fills only the middle`.
+Three small wording changes follow from keeping every row inside the box and a changing number at
+the end of its row: the stone row reads `carry 20, need 14 Stone`, naming the item once at the
+end (the longer wording was 41 characters in the commonest state and got cut), the short-of-stone
+sentence moved into the warning slot as `Short of stone, fills only the middle`, and the held
+height reads `HOLDING until LeftAlt` instead of `HOLDING, LeftAlt releases`, which was too long
+for a Control key. A key name over 14 characters is cut to 14 on that row. The widest case of
+every row is worked out in a comment in the code and is 40 characters or fewer.
+
+The panel is no longer rebuilt on every frame: it is rebuilt when the aim (to the nearest
+centimetre), the reach, the price, the pack, the held key or the language changes. Item names are
+looked up once per language. When you scroll to another entry of the same hoe, the old entry's
+numbers no longer show on the new one for a frame. The readout also logs an error once if it ever
+builds anything other than twelve rows.
 
 A Devkit scenario, `jafna-readout-one-size`, runs the panel through flat ground, a fillable spot, a
-short pack and no workbench and holds the drawn line count and height equal, through a new
-`jafnareadout` console command that reads what the panel's label actually drew. Not yet seen in a
-game.
+short pack, no workbench and a Crafting 100 swing with fifty stones. It holds the drawn line count
+and height equal and checks that Jafna's own string is twelve rows, shown in the label, with no row
+cut and the Stone and Workbench rows holding a dash or text as expected. It reads them through a new
+`jafnareadout` console command, a development command that ships in the build, only reads and is not
+a cheat. Built, not yet seen in a game.
 
 ## 1.1.0 - 30 September 2026
 

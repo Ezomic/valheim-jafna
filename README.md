@@ -71,9 +71,9 @@ Flattens 6.0m across (Crafting 52)
 HEIGHT
 Crosshair: 5.40m
 This swing: 5.00m
-Taken from: flat ground                or your crosshair, or HOLDING and the key that releases it
+Taken from: flat ground                or your crosshair, or HOLDING until the key you pressed
 COST
-Stone: you carry 20, needs 14
+Stone: carry 20, need 14 Stone
 Workbench: in range
 ```
 
@@ -83,6 +83,15 @@ rows below it say the rest. Each row ends with the value that moves as you look 
 nothing after it shifts. No row is longer than the box, so none wraps onto a second line, and a
 row that would be (several kinds of item in a price, a longer language) is cut with `..` rather
 than allowed to. `ShowReadout` turns all of it off.
+
+The panel is rebuilt only when something it shows has changed (the aim to the nearest
+centimetre, the reach, the price, the pack, the language), not on every frame, and the item
+names are looked up in the language once.
+
+`jafnareadout` is a development command, in the console, and it ships in the build on purpose so
+the scenarios can run against it. It only reads: it prints how many lines the panel drew, whether
+any wrapped or was cut, and whether the rows hold dashes. It is not a cheat and needs no
+devcommands. You have no reason to type it.
 
 ## Holding a height
 
@@ -97,9 +106,10 @@ a levelling tool out, press **Left Alt** and the height under your crosshair is 
 anywhere, aim anywhere, and every swing eases the ground toward that one number until you press
 again. Nothing is searched for and nothing is guessed while it is on.
 
-The panel's Taken from row says `HOLDING, LeftAlt releases` for as long as it lasts. That wording
+The panel's Taken from row says `HOLDING until LeftAlt` for as long as it lasts. That wording
 is deliberate: the single mistake this feature can cause is forgetting it is on, and a row
-that tells you how to stop cannot be read as decoration.
+that tells you how to stop cannot be read as decoration. A key name longer than 14 characters is
+cut to 14 on that row so the row stays inside the box.
 
 The key counts when you let go of it, and only when you pressed it on its own. Press another key
 or a mouse button while it is down, or let the game window lose focus before you let go, and

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using HarmonyLib;
 using UnityEngine;
 
@@ -32,6 +33,11 @@ namespace Jafna
 
         private static string _lines;
 
+        /// <summary>The piece that was selected when <see cref="_lines"/> was built.</summary>
+        private static Piece _builtFor;
+
+        private static bool _countWarned;
+
         /// <summary>
         /// How many lines the box holds, and the reason the count is fixed.
         ///
@@ -57,20 +63,59 @@ namespace Jafna
         /// </summary>
         internal const int Rows = 12;
 
+        /// <summary>Where the two rows a scenario reads for a dash sit in the list.</summary>
+        internal const int StoneAt = 10;
+
+        internal const int BenchAt = 11;
+
         /// <summary>
         /// The longest a line may be, in visible characters after the game has put its own names in.
-        /// A line longer than the box wraps, and a wrapped line is a line more. The longest row
-        /// written here is 38. Devkit's `jafnareadout` checks the real box for a wrapped line.
+        /// A line longer than the box wraps, and a wrapped line is a line more. Devkit's
+        /// `jafnareadout` checks the real box for a wrapped line, and for a row <see cref="Fit"/> cut.
+        ///
+        /// The worst case of every row, in plain characters, English names, three digit counts:
+        ///
+        ///   Taken from, held         12 + "HOLDING until " 14 + a key name cut to 14       = 40
+        ///   Taken from, disagree     12 + "crosshair, heights disagree" 27                 = 39
+        ///   Short of stone slot      "Short of stone, fills only the middle"               = 38
+        ///   Short, takes own slot    "Short, the swing itself takes " 30 + "100 Stone" 9   = 39
+        ///   Ward slot                "A ward you cannot use is in the swing"               = 37
+        ///   Flattens                 9 + "24.0m" 5 + " across (Crafting " 18 + "100" 3 + ")" = 36
+        ///   Stone, carry and need    "Stone: carry " 13 + 3 + ", need " 7 + 3 + " Stone" 6  = 32
+        ///   Stone, free / covered    "Stone: free in this world" 25, "already paid for" 23
+        ///   Crosshair, Raise, Lower  at most 20
+        ///   Workbench                at most 20
+        ///
+        /// The held row is the tight one: "HOLDING until RightControl" is 12 + 26 = 38, and the
+        /// cut at 14 characters keeps a long key name (KeypadMultiply, JoystickButton19) from
+        /// pushing it past 40. The Stone row names its item once, at the end, because the first
+        /// version printed it after every count ("you carry 20 Stone, needs 14 Stone" is 41) and
+        /// was cut in the commonest state. A language whose item name is more than 13 letters
+        /// long still reaches the cut on the Stone row, which is the intended failure.
         /// </summary>
         private const int MaxChars = 40;
+
+        private const int HeldKeyChars = 14;
 
         private const string Dim = "#a79d86";
         private const string Red = "#ff6060";
 
-        private static readonly System.Text.RegularExpressions.Regex Tags =
-            new System.Text.RegularExpressions.Regex("<[^>]*>");
-
         private static readonly List<Heightmap> Maps = new List<Heightmap>();
+
+        /// <summary>Localised item names by the tokens they came from, so the panel asks the language once.</summary>
+        private static readonly Dictionary<string, string> Names = new Dictionary<string, string>();
+
+        private static string _namesLanguage;
+
+        // What the current lines were built from. Compared every frame so an unchanged readout is
+        // not rebuilt: building it is a dozen string concatenations, a localisation pass and a
+        // join, sixty times a second for text that is the same on every one of them.
+        private static int _kx, _ky, _kz, _kRadius, _kTarget, _kRaise, _kLower, _kCrafting;
+        private static bool _kWard, _kFar;
+        private static Flat.Source _kSource;
+        private static Fill.Terms _kTerms;
+        private static KeyCode _kKey;
+        private static string _kLanguage, _kCost, _kAll, _kCarried, _kOwn, _kStation, _kItems;
 
         /// <summary>
         /// Recomputed by the placement-ghost postfix while a level op is selected. Kept as a
@@ -85,6 +130,8 @@ namespace Jafna
                 _lines = null;
                 return;
             }
+
+            _builtFor = player == null ? null : player.GetSelectedPiece();
 
             // The compiler for this zone exists on this machine only once something has been
             // levelled here before, and that is exactly the case where there is a flat to
@@ -108,7 +155,7 @@ namespace Jafna
             }
 
             Fill.Terms terms = Fill.Terms.None;
-            string cost = null, all = null, carried = null, own = null, station = null;
+            string cost = null, all = null, carried = null, own = null, station = null, items = null;
             bool far = false;
 
             // Only while the swing would actually land. A refused swing raises nothing and costs
@@ -117,12 +164,21 @@ namespace Jafna
             {
                 terms = Fill.Quote(
                     player, settings, point, radius,
-                    out cost, out all, out carried, out own, out far, out station);
+                    out cost, out all, out carried, out own, out far, out station, out items);
             }
 
             Gap(point, radius, target, out float raise, out float lower);
 
-            string crafting = JafnaPatches.CraftingLevel(player).ToString("0");
+            int craftingLevel = Mathf.RoundToInt(JafnaPatches.CraftingLevel(player));
+            string language = Localization.instance != null ? Localization.instance.GetSelectedLanguage() : "";
+
+            bool unchanged = Unchanged(
+                point, radius, target, raise, lower, craftingLevel, wardClear, far, source, terms,
+                language, cost, all, carried, own, station, items);
+
+            if (unchanged && _lines != null) return;
+
+            string crafting = craftingLevel.ToString("0");
 
             // Each row ends with whatever changes as you look around, so the one value that moves
             // every frame is the last thing on its line and shifts nothing when it does.
@@ -141,7 +197,7 @@ namespace Jafna
                 Row("Taken from: ", Num(From(source))),
 
                 Header("COST"),
-                StoneRow(terms, cost, all, carried),
+                StoneRow(terms, cost, all, carried, ItemNames(items)),
                 WorkbenchRow(terms)
 
                 // LHM-42's stone switch belongs here as the last row of the Cost group, for
@@ -149,7 +205,68 @@ namespace Jafna
                 // so merging it makes Rows 13 and moves nothing else in the box.
             };
 
+            if (rows.Count != Rows && !_countWarned)
+            {
+                _countWarned = true;
+                JafnaPlugin.Log.LogError(
+                    "The build panel readout built " + rows.Count + " rows, not " + Rows
+                    + ". A branch added or dropped a row, which is the box changing size (LHM-46).");
+            }
+
             _lines = string.Join("\n", rows.ToArray());
+        }
+
+        private static bool Unchanged(
+            Vector3 point, float radius, float target, float raise, float lower, int crafting,
+            bool wardClear, bool far, Flat.Source source, Fill.Terms terms, string language,
+            string cost, string all, string carried, string own, string station, string items)
+        {
+            int x = Mathf.RoundToInt(point.x * 100f);
+            int y = Mathf.RoundToInt(point.y * 100f);
+            int z = Mathf.RoundToInt(point.z * 100f);
+            int r = Mathf.RoundToInt(radius * 100f);
+            int t = Mathf.RoundToInt(target * 100f);
+            int up = Mathf.RoundToInt(raise * 100f);
+            int down = Mathf.RoundToInt(lower * 100f);
+
+            bool same = x == _kx && y == _ky && z == _kz && r == _kRadius && t == _kTarget
+                        && up == _kRaise && down == _kLower && crafting == _kCrafting
+                        && wardClear == _kWard && far == _kFar && source == _kSource && terms == _kTerms
+                        && JafnaConfig.HoldKey.Value == _kKey && language == _kLanguage
+                        && cost == _kCost && all == _kAll && carried == _kCarried && own == _kOwn
+                        && station == _kStation && items == _kItems;
+
+            if (same) return true;
+
+            _kx = x; _ky = y; _kz = z; _kRadius = r; _kTarget = t; _kRaise = up; _kLower = down;
+            _kCrafting = crafting; _kWard = wardClear; _kFar = far; _kSource = source; _kTerms = terms;
+            _kKey = JafnaConfig.HoldKey.Value; _kLanguage = language;
+            _kCost = cost; _kAll = all; _kCarried = carried; _kOwn = own; _kStation = station; _kItems = items;
+            return false;
+        }
+
+        private static string ItemNames(string tokens)
+        {
+            if (string.IsNullOrEmpty(tokens)) return "";
+
+            Localization loc = Localization.instance;
+            if (loc == null) return tokens;
+
+            string language = loc.GetSelectedLanguage();
+            if (language != _namesLanguage)
+            {
+                Names.Clear();
+                _namesLanguage = language;
+            }
+
+            if (Names.TryGetValue(tokens, out string name)) return name;
+
+            string[] parts = tokens.Split('/');
+            for (int i = 0; i < parts.Length; i++) parts[i] = loc.Localize(parts[i]);
+
+            name = string.Join("/", parts);
+            Names[tokens] = name;
+            return name;
         }
 
         /// <summary>
@@ -171,7 +288,7 @@ namespace Jafna
                 case Fill.Terms.Short:
                 case Fill.Terms.ShortCovered:
                     // The entry's own cost is taken by vanilla after the fill leaves it alone, so
-                    // "you carry 5, needs 31" would read as five to spend when some of it is not.
+                    // "carry 5, need 31" would read as five to spend when some of it is not.
                     return Warn(string.IsNullOrEmpty(own)
                         ? "Short of stone, fills only the middle"
                         : "Short, the swing itself takes " + own);
@@ -182,7 +299,7 @@ namespace Jafna
             }
         }
 
-        private static string StoneRow(Fill.Terms terms, string cost, string all, string carried)
+        private static string StoneRow(Fill.Terms terms, string cost, string all, string carried, string names)
         {
             switch (terms)
             {
@@ -191,11 +308,11 @@ namespace Jafna
                 case Fill.Terms.Covered:
                     return Row("Stone: ", Num("already paid for"));
                 case Fill.Terms.Paid:
-                    return Row("Stone: you carry ", Num(carried), ", needs ", Num(cost));
+                    return Row("Stone: carry ", Num(carried), ", need ", Num(cost), " ", names);
                 case Fill.Terms.Short:
                 case Fill.Terms.ShortCovered:
                 case Fill.Terms.Unaffordable:
-                    return Row("Stone: you carry ", Num(carried), ", needs ", Bad(all));
+                    return Row("Stone: carry ", Num(carried), ", need ", Bad(all), " ", names);
                 default:
                     return Row("Stone: ", Num("-"));
             }
@@ -224,7 +341,7 @@ namespace Jafna
                     // and the ground moves toward a number you set five minutes ago. The word
                     // HOLDING stays because the scenarios assert its absence while nothing is held,
                     // and a check for a word that no longer exists would pass for nothing.
-                    return "HOLDING, " + JafnaConfig.HoldKey.Value + " releases";
+                    return "HOLDING until " + HeldKeyName();
                 case Flat.Source.ContinuedFlat:
                     return "flat ground";
                 case Flat.Source.Disagreed:
@@ -234,6 +351,12 @@ namespace Jafna
                 default:
                     return "your crosshair";
             }
+        }
+
+        private static string HeldKeyName()
+        {
+            string key = JafnaConfig.HoldKey.Value.ToString();
+            return key.Length <= HeldKeyChars ? key : key.Substring(0, HeldKeyChars);
         }
 
         /// <summary>
@@ -314,10 +437,37 @@ namespace Jafna
         /// </summary>
         private static string Fit(string line)
         {
-            string shown = Localization.instance != null ? Localization.instance.Localize(line) : line;
-            string plain = Tags.Replace(shown, "");
+            // Only a line still carrying a $ token needs the game's pass; the item names are
+            // localised once in ItemNames and the station phrase arrives localised.
+            string shown = Localization.instance != null && line.IndexOf('$') >= 0
+                ? Localization.instance.Localize(line)
+                : line;
+            string plain = Plain(shown);
 
             return plain.Length <= MaxChars ? shown : plain.Substring(0, MaxChars - 2) + "..";
+        }
+
+        /// <summary>The text of a line with its rich-text tags taken out, as the panel counts it.</summary>
+        internal static string Plain(string line)
+        {
+            var text = new StringBuilder(line.Length);
+            bool inTag = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (c == '<') inTag = true;
+                else if (c == '>' && inTag) inTag = false;
+                else if (!inTag) text.Append(c);
+            }
+
+            return text.ToString();
+        }
+
+        /// <summary>What the readout last built, for the console probe to read back.</summary>
+        internal static string Lines
+        {
+            get { return _lines; }
         }
 
         internal static void Clear()
@@ -363,6 +513,17 @@ namespace Jafna
 
             Piece selected = __instance.GetSelectedPiece();
             if (selected != _described) Restore();
+
+            // The lines were built for the piece selected when the ghost was updated, which in a
+            // frame where the selection moved inside the same table is the previous one. Writing
+            // them onto the new piece shows the old numbers for a frame, so drop them and let the
+            // next ghost update build them for the right entry.
+            if (_lines != null && selected != _builtFor)
+            {
+                _lines = null;
+                Restore();
+                return;
+            }
 
             if (!JafnaConfig.Enabled.Value || _lines == null || selected == null)
             {
