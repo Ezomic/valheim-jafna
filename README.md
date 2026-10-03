@@ -235,6 +235,10 @@ and the ward rule becomes an agreement between players rather than a property of
 
 ## Settings
 
+With [Core](https://github.com/Ezomic/valheim-core) installed, `ShowReadout` and `HoldKey` are also on the
+Settings page of the compendium, where a key is rebound by pressing it and a change applies at once. The readout
+switch is yours alone: a host does not decide whether your panel draws it.
+
 Every setting is in `BepInEx/config/ezomic.valheim.jafna.cfg`, and each one carries its
 reasoning in the file rather than here, so there is only one place to keep up to date. The ones
 worth knowing exist:

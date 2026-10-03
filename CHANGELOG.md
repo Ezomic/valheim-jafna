@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Jafna's raise-hold key and its readout switch are on Core's Settings page (LHM-51), the page in the
+compendium that lists a player's own settings and writes them to the `.cfg` at once. `ShowReadout` is
+now declared personal with `Suite.Local`, so a host no longer decides whether your build panel draws its
+readout, which is what lets the page list it. The key was personal already. Without Core nothing changes.
+Built, not run in game.
+
 ## 1.1.0 - 30 September 2026
 
 **Low ground is raised, and paid for in stone.** This reverses the call made on 20 September
