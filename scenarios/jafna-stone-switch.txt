@@ -1,0 +1,151 @@
+#! nostage
+#
+# Jafna: the player's own stone switch. With it off a swing is the hoe's alone, with it on the
+# same swing is paid for in stone.
+#
+# Four claims, in this order:
+#
+#   1. With the switch on, the build panel says so and a swing from the mound at untouched low
+#      ground lifts the middle of its circle to the height it aims at, and nothing says "Not enough".
+#      This is the control. Without it claim 3 would pass for a build that never fills at all, and
+#      for a build whose workbench is out of range, which both read the same as the switch.
+#   2. `jafna stone off` flips the switch the way the key does: the command says it is off, and the
+#      build panel says it too.
+#   3. With the switch off, a swing from the same mound at untouched low ground far below the height
+#      it aims at takes no stone, says nothing in the middle of the screen, and the middle of the
+#      swing comes up the hoe's free metre and stops. Twenty stones are carried, and twenty are still
+#      there.
+#   4. The switch is put back on at the end, because it lives in the cfg and a scenario that leaves
+#      it off leaves the next session's swings unpaid.
+#
+# NO STAGE, and everything about the mound, the workbench and the gates is the main scenario's
+# (jafna-auto-raise-pays-in-stone.txt, see THE MOUNDS, THE WORKBENCH and section 7 there for why
+# each number is what it is). In short: one mound of two Raise ground 3 m ahead, the workbench
+# 11 m behind and 10 m to the left, so the stance on the mound is 17.6 m from it and inside its 20.
+# Two spots are swung at from that one stance, 2.5 m to the side for the control and 2.5 m ahead for
+# the switch off, 3.5 m apart. The hoe's circle is 3 m round (Crafting 0), so neither swing reaches
+# the other's measured point. The side swing comes first so that nothing it leaves can stand in
+# for the ahead spot's own ground.
+#
+# WHY THE ahead SWING STOPS AT A METRE. Level ground eases each point a metre at most and the
+# fill is what takes the rest. The same swing as section 7 of the main scenario, which reads +1.00
+# at the middle when the fill is refused for being out of the bench's range: the metre, +0.85 to
+# +1.15.
+#
+# WHAT NO STEP HERE CAN SEE. The key. A scenario cannot press one, so `jafna stone on|off` stands in
+# for it, and the key's own paths (the press counted only with a levelling tool out, refused while
+# chat or the console has the keyboard, the message in the top left) are manual steps below. And the
+# switch staying personal on a server: it is declared with Suite.Local, which only a second machine
+# with a host that has it set differently can show.
+#
+# NEEDS: everything the main scenario asks (singleplayer, English, no NoWorkbench key, no nocost, a
+# strip of untouched ground no steeper than 1 in 20 with no ward, no rock, nothing built on it, no
+# other workbench within 20 m, eaten first), and Jafna's AutoRaise on in the cfg: with the host's
+# AutoRaise off claim 1 fails, which is the rule working. Crafting is set to 0 for the hoe's own
+# 3 m reach. Devkit d219857 or later, for `place`.
+#
+# LEAVES: one mound, a circle on its side raised to the mound's height with a step round it, a patch
+# a metre up beyond it, and the workbench. Devkit empties the pack and hands back the test kit.
+#
+# MANUAL STEPS, for what no step can see.
+#
+#   1. Take the hoe out and select Level ground. Expected: the panel's last line says "Stone fill is
+#      on, J turns it off". Put the hoe away. Expected: nothing in the top left changes.
+#   2. With the hoe out, press J. Expected: "Stone fill off" in the top left, and the panel's last
+#      line says "Stone fill is off, J turns it on". Quit to the menu and come back in. Expected: it
+#      is still off. Press J again. Expected: "Stone fill on".
+#   3. With the hoe put away, press J. Expected: nothing happens, and the next time the hoe is out
+#      the panel still says what it said before.
+#   4. Open chat and type a J. Expected: the letter appears in the chat line, and the switch does not
+#      flip.
+#   5. Set AutoRaise to false in the cfg, with the hoe out. Expected: the panel says "Stone fill is
+#      off, this server has it off", and pressing J changes the top left message to "Stone fill on,
+#      but this server has it off" without any swing taking stone.
+#   6. On a server, with the host's StoneFill left on and your own turned off: swing at low ground.
+#      Expected: no stone leaves your pack, and another player with their own switch on can still
+#      fill. Neither changes the other's panel.
+
+
+# ---- setting up
+
+clear
+give Hoe:1,Stone:2
+skill Crafting 0
+tool Hoe mud_road_v2
+mod jafna stone on
+
+place piece_workbench -11 -10
+wait 1
+
+onscreen Flattens yes
+onscreen HOLDING no
+centre (clearing the message line) no
+
+
+# ---- the mound, 3 m ahead
+
+wait 2
+move 3 0
+mark
+landed
+move -3 0
+build raise_v2 3 0
+wait 1
+place raise_v2 3 0
+wait 1
+carrying Stone 0
+height 3 0 1.9 0.4
+
+
+# ---- 1: the control, switch on, 2.5 m to the side, twenty stones
+
+wait 2
+move 3.5 -2.5
+mark side
+landed
+move 0 2.5
+mark
+height 0 0 4.7 3.3 side
+tool Hoe mud_road_v2
+give Stone:20
+wait 1
+onscreen Flattens yes
+onscreen HOLDING no
+onscreen Stone fill is <color=orange>on yes
+
+build mud_road_v2 0 -2.5
+wait 1
+centre Not enough no
+height 0 -2.5 0 0.1
+
+
+# ---- 2 and 3: switch off, 2.5 m ahead, twenty stones in a pack cleared first
+
+wait 2
+move 2.5 0
+mark ahead
+landed
+move -2.5 0
+height 0 0 4.7 3.3 ahead
+clear
+give Hoe:1,Stone:20
+tool Hoe mud_road_v2
+mod jafna stone off
+printed jafna stone=off yes
+wait 1
+onscreen Stone fill is <color=orange>off yes
+onscreen HOLDING no
+centre (clearing the message line) no
+
+build mud_road_v2 2.5 0
+wait 1
+carrying Stone 20
+centre Not enough no
+centre Workbench nearby no
+height 2.5 0 1 0.15 ahead
+
+
+# ---- 4: put the switch back on
+
+mod jafna stone on
+printed jafna stone=on yes

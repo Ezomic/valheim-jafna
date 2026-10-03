@@ -107,6 +107,8 @@ namespace Jafna
             // written is worth more than the one saved line.
             _harmony.PatchAll(typeof(Readout));
 
+            _harmony.PatchAll(typeof(DevConsole.Hook));
+
             // The startup line every mod in the suite writes. It is how a log answers "which
             // build of what is actually loaded" without anyone guessing.
             Log.LogInfo(PluginName + " " + PluginVersion + " by " + PluginAuthor + " - ready.");
@@ -175,6 +177,13 @@ namespace Jafna
             Suite.Sync(JafnaConfig.MaxRadius);
             Suite.Sync(JafnaConfig.AutoRaise);
             Suite.Sync(JafnaConfig.RespectWardFootprint);
+
+            // Registering syncs the whole config bar keybinds, so StoneFill would be the host's
+            // by default and every press of the key would be put straight back. It is the
+            // player's own preference and cannot desync anything: the host's AutoRaise is the
+            // rule, and what a client sends the zone owner is only whether it wants a fill.
+            // HoldKey needed no such line because a KeyCode is exempt without being asked.
+            Suite.Local(JafnaConfig.StoneFill, JafnaConfig.StoneFillKey);
 
             // If the mod reads a data file that decides what it does, hash it too. The gate
             // catches two ends on different builds; it cannot catch two ends running the

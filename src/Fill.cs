@@ -916,7 +916,7 @@ namespace Jafna
             _plannedOp = op;
             _plannedReach = -1f;
 
-            if (!JafnaConfig.AutoRaise.Value || player == null) return -1f;
+            if (!Allowed || player == null) return -1f;
 
             // Only ever asked about the local player's own swing: ApplyOperation hands every other
             // op straight back to vanilla before it gets here (Reach.IsSwing), so a pickaxe's dig,
@@ -1152,6 +1152,23 @@ namespace Jafna
         }
 
         // -- The zone owner -----------------------------------------------------------------------
+
+        /// <summary>
+        /// Whether THIS player's swings may ask for a fill: the host's AutoRaise, which stays the
+        /// upper bound, and the player's own StoneFill switch under it.
+        ///
+        /// Asked only where the swinging client decides (<see cref="Plan"/> and
+        /// <see cref="Quote"/>). The zone owner, who may be somebody else, never asks it and
+        /// reads only the host's AutoRaise and whether a reach arrived: a switch is the
+        /// swinger's own, and an owner applying its own switch to another player's swing would
+        /// be the one thing that made it not personal. An off switch sends no reach at all, the
+        /// same as being out of the workbench's range, so the owner is never asked to raise
+        /// anything and no bill can come back.
+        /// </summary>
+        internal static bool Allowed
+        {
+            get { return JafnaConfig.AutoRaise.Value && JafnaConfig.StoneFill.Value; }
+        }
 
         /// <summary>Whether this op, arriving with this reach, is one <see cref="Apply"/> will raise ground for.</summary>
         internal static bool Wants(TerrainOp.Settings modifier, float reach)
@@ -1404,7 +1421,7 @@ namespace Jafna
             far = false;
             station = null;
 
-            if (!JafnaConfig.AutoRaise.Value || player == null || !Applies(settings)) return Terms.None;
+            if (!Allowed || player == null || !Applies(settings)) return Terms.None;
 
             // Plan's interior test, so the panel never prices a swing that would not be filled.
             if (Character.InInterior(point)) return Terms.None;

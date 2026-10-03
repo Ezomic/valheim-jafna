@@ -186,6 +186,26 @@ any stone you carry, which is what vanilla's Raise ground does as well.
 `AutoRaise` in the config turns this off and gives the one metre ceiling back. On a server the
 host decides it.
 
+## Turning the stone off for yourself
+
+`AutoRaise` is the host's rule and a file edit. For the player there is a switch of their own,
+`StoneFill`, flipped in game with **J** (`StoneFillKey`) while a levelling tool is out. Off, every
+swing of yours is the hoe's alone: its free metre, no stone taken, nothing lifted past it, and
+the panel stops quoting a price. The panel's last line says which it is, `Stone fill is on, J
+turns it off`, so a swing that took no stone is never a surprise. The key does nothing with the
+hoe put away or while chat or the console has the keyboard, and it tells you what it did in the
+top left of the screen.
+
+The host's `AutoRaise` stays the upper bound. Off there means off for everybody and the switch
+cannot turn it back on, which the panel says: `Stone fill is off, this server has it off`. On
+there means each player may still turn it off for themselves, and the switch is yours alone: it
+is never taken over by a server and another player's switch changes nothing for you. It is kept in
+the cfg, so it is the same next session. A held height is not, because a held height is a number
+you set for a reason you may forget, and this is a preference the panel shows every time.
+
+J is a plain letter with no job in the game's own bindings and none in the other mods here. It is
+not Left Alt, which is Jafna's `HoldKey`, and not Left Shift, which is vanilla's alt placement.
+
 ## Reach, and why it is earned
 
 This is Skaft's rule applied to a second tool: Crafting buys reach and never buys a discount.
@@ -247,6 +267,8 @@ worth knowing exist:
   it looks like it should be.
 - `RespectWardFootprint` is the ward rule above.
 - `AutoRaise` is raising low ground for stone. On by default.
+- `StoneFill` is your own switch for that, and `StoneFillKey` flips it in game. Personal, so a
+  server never sets either.
 - `ShowReadout` is the build panel lines.
 
 BepInEx writes every entry to disk on the first run and the saved value beats a later default
@@ -332,6 +354,9 @@ takes and each point's free metre coming off the bill, the middle coming up firs
 runs short, and the workbench rule and its two messages. Not watched yet: the panel's price before
 a swing, ground past the eight metre limit being left alone and said so, and leftover stone
 carrying over to the next swing.
+
+The stone switch was built and compiled and has not been run in game. Its scenario
+(`jafna-stone-switch.txt`) has not been run, and nothing has pressed the key.
 
 The hold key ignoring Alt+Tab was checked by hand the same day. A chord pressed with it spoiling
 the tap was not.
