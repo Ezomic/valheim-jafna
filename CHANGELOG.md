@@ -45,6 +45,12 @@ cut and the Stone and Workbench rows holding a dash or text as expected. It read
 `jafnareadout` console command, a development command that ships in the build, only reads and is not
 a cheat. Built, not yet seen in a game.
 
+Jafna's raise-hold key, its stone fill key and its readout switch are on Core's Settings page (LHM-51), the page in the
+compendium that lists a player's own settings and writes them to the `.cfg` at once. `ShowReadout` is
+now declared personal with `Suite.Local`, so a host no longer decides whether your build panel draws its
+readout, which is what lets the page list it. The two keys (raise hold and the stone fill key) were personal already. Without Core nothing changes.
+Built, not run in game.
+
 ## 1.1.0 - 30 September 2026
 
 **Low ground is raised, and paid for in stone.** This reverses the call made on 20 September

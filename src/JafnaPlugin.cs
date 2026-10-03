@@ -188,11 +188,32 @@ namespace Jafna
             // HoldKey needed no such line because a KeyCode is exempt without being asked.
             Suite.Local(JafnaConfig.StoneFill, JafnaConfig.StoneFillKey);
 
+            // Whether the build panel draws its readout is a screen choice, and a host has no
+            // business making it for somebody else's screen. Local keeps Core from imposing it,
+            // which is also what lets Core's settings screen list it (LHM-51).
+            Suite.Local(JafnaConfig.ShowReadout);
+
+            try { ListOnSettingsScreen(); }
+            catch (System.Exception e) { Log.LogInfo("Core has no settings screen to list on, so these settings are in the .cfg only: " + e.Message); }
+
             // If the mod reads a data file that decides what it does, hash it too. The gate
             // catches two ends on different builds; it cannot catch two ends running the
             // same build over different text unless it is told.
             //
             //     Suite.Data(File.ReadAllText(path));
+        }
+
+        /// <summary>
+        /// The settings this mod lists on Core's settings screen (LHM-51). Never inlined and called
+        /// inside a try, so an older Core that has no such screen costs the listing and nothing
+        /// else, and the JIT only meets the type on a machine that has it.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private void ListOnSettingsScreen()
+        {
+            SettingsPanel.Add(JafnaConfig.ShowReadout, "Show readout", SettingsGroup.Display, summary: "readout on|readout off");
+            SettingsPanel.Add(JafnaConfig.HoldKey, "Raise hold", SettingsGroup.Hotkeys, "while levelling with the hoe");
+            SettingsPanel.Add(JafnaConfig.StoneFillKey, "Stone fill", SettingsGroup.Hotkeys, "turns stone fill on and off");
         }
 
         private void OnDestroy()
