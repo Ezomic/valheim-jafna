@@ -23,6 +23,8 @@ namespace Jafna
         internal static ConfigEntry<int> ContinueMinVertices;
         internal static ConfigEntry<KeyCode> HoldKey;
         internal static ConfigEntry<bool> AutoRaise;
+        internal static ConfigEntry<bool> StoneFill;
+        internal static ConfigEntry<KeyCode> StoneFillKey;
 
         internal static ConfigEntry<float> MinRadius;
         internal static ConfigEntry<float> MaxRadius;
@@ -135,6 +137,30 @@ namespace Jafna
                 + "above the target still stops after a metre, or up to two on ground raised before, "
                 + "because digging is the pickaxe's job. Off gives back the one metre ceiling. On a "
                 + "server the host decides this.");
+
+            StoneFill = cfg.Bind("Levelling", "StoneFill", true,
+                "Your own switch for the stone fill AutoRaise describes. On, a swing that needs "
+                + "stone takes it as AutoRaise says. Off, every swing of yours is the hoe's alone: "
+                + "its free metre, no stone taken, nothing lifted past it. It is flipped in game "
+                + "with StoneFillKey while a levelling tool is out, and the build panel says which "
+                + "it is. The host's AutoRaise stays the upper bound: off there means off for "
+                + "everybody and this switch cannot turn it back on, on there means each player "
+                + "may still turn it off for themselves. It is personal state and is never taken "
+                + "over by a server, so the host cannot switch it for you either. Kept across "
+                + "logouts, unlike a held height, because it is a preference and not a number "
+                + "you set for a reason you may forget, and the panel shows it every time the "
+                + "tool is out.");
+
+            // J, because nothing else wants it. ZInput's default bindings (ResetKBMButtons in 1.0)
+            // use E, R, Q, X, F, C, V, G, T, M, Tab, W A S D, the digits, F5 and a few non-letter
+            // keys, and no other mod in this folder defaults to J. Not Left Alt, which is
+            // Jafna's own HoldKey, Malmr's vein key and Taum's, and not Left Shift, which is
+            // vanilla's alt placement. Read 2026-10-03.
+            StoneFillKey = cfg.Bind("Levelling", "StoneFillKey", KeyCode.J,
+                "Press this while a levelling tool is out to turn the stone fill on or off for "
+                + "yourself (StoneFill). It does nothing with the hoe put away, and nothing while "
+                + "chat, the console or a text field has the keyboard. None takes the key away "
+                + "and leaves the switch in the cfg. Keybinds are never taken over by a server.");
 
             // -- Reach -------------------------------------------------------------------
 

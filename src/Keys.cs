@@ -126,6 +126,31 @@ namespace Jafna
             }
         }
 
+        private static int _pressedFrame = -1;
+
+        /// <summary>
+        /// A plain press of <paramref name="key"/>: it went down this frame, the game has the
+        /// focus and no chat, console or text field has the keystroke.
+        ///
+        /// For a key that is its own gesture, unlike <see cref="Tap"/>, which exists because the
+        /// hold key defaults to Left Alt and Alt+Tab starts with that key going down. A letter
+        /// has no such chord to be mistaken for, so acting on the down edge is right and the
+        /// switch answers the moment it is pressed. Once a frame at most, because the placement
+        /// ghost is updated twice in a frame where a swing lands and a second read would find the
+        /// same edge again and flip the switch straight back.
+        /// </summary>
+        internal static bool Pressed(KeyCode key)
+        {
+            int frame = Time.frameCount;
+            if (frame == _pressedFrame) return false;
+            _pressedFrame = frame;
+
+            if (key == KeyCode.None) return false;
+
+            // logWarning false for the reason the Tap gives: a key nobody bound is a choice.
+            return Undisturbed() && ZInput.GetKeyDown(key, false);
+        }
+
         /// <summary>The game has the focus and no text field has the keystroke.</summary>
         private static bool Undisturbed()
         {

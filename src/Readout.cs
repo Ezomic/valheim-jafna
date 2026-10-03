@@ -140,7 +140,27 @@ namespace Jafna
                 if (fill != null) text += "\n" + fill;
             }
 
+            // Last, and always there, so the lines above it keep their places and the panel says
+            // whether a swing will take stone before one is a surprise. Whatever LHM-46 does with
+            // the box, this is a line of its own.
+            text += "\n" + SwitchLine();
+
             _lines = text;
+        }
+
+        /// <summary>
+        /// Whether stone fill is on, as one short line. When the host has AutoRaise off it says
+        /// that, because then the player's own switch is not what decides.
+        /// </summary>
+        private static string SwitchLine()
+        {
+            if (!JafnaConfig.AutoRaise.Value) return "Stone fill is " + Num("off") + ", this server has it off";
+
+            string key = JafnaConfig.StoneFillKey.Value == KeyCode.None
+                ? ""
+                : ", " + JafnaConfig.StoneFillKey.Value + " turns it " + (StoneSwitch.On ? "off" : "on");
+
+            return "Stone fill is " + Num(StoneSwitch.On ? "on" : "off") + key;
         }
 
         /// <summary>

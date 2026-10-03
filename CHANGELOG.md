@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+**A switch for the stone fill, yours alone.** `AutoRaise` is the host's rule and a file edit, so
+on a server a player could not turn the stone off for themselves. There is now `StoneFill`, flipped
+in game with J (`StoneFillKey`) while a levelling tool is out. Off, a swing is the hoe's alone: its
+free metre, no stone taken, no price on the panel. The panel's last line says whether it is on, and
+the key says what it did in the top left. The host's `AutoRaise` stays the upper bound, so off there
+is off for everybody and the panel says so. The switch is personal, declared with `Suite.Local` so
+Core never syncs it, and it is kept in the cfg between sessions. A new console command,
+`jafna stone on|off`, flips it the way the key does, for the scenario
+(`scenarios/jafna-stone-switch.txt`), which checks that a swing far below the aimed height takes
+no stone and stops at the free metre with the switch off, and fills with it on. Built and
+compiled, not yet run in game.
+
 ## 1.1.0 - 30 September 2026
 
 **Low ground is raised, and paid for in stone.** This reverses the call made on 20 September
