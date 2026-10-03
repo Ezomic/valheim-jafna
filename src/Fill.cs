@@ -1395,7 +1395,10 @@ namespace Jafna
         /// <paramref name="all"/> what filling the whole of it would take; they differ only when
         /// the pack is short. <paramref name="carried"/> is what the pack holds and
         /// <paramref name="own"/> what the entry itself takes of the same items, which the short
-        /// lines need and the others do not. <paramref name="far"/> is whether any of the swing is
+        /// lines need and the others do not. The first three are bare counts, one per item and
+        /// joined with "/" when a price has several, and <paramref name="items"/> is the matching
+        /// item tokens in the same order, so the panel can print the numbers and name the items
+        /// once at the end of the row. <paramref name="far"/> is whether any of the swing is
         /// too far below the height for the game to ever allow (see <see cref="Measure"/>), which
         /// can be true whatever the terms, including None. <paramref name="station"/> names the
         /// station that is out of range, "a Workbench", and is set only with NoStation.
@@ -1412,8 +1415,9 @@ namespace Jafna
         internal static Terms Quote(
             Player player, TerrainOp.Settings settings, Vector3 point, float radius,
             out string cost, out string all, out string carried, out string own, out bool far,
-            out string station)
+            out string station, out string items)
         {
+            items = null;
             cost = null;
             all = null;
             carried = null;
@@ -1459,6 +1463,7 @@ namespace Jafna
             float spent = everything ? need : Inside(Quoted, reach);
 
             bool anything = false;
+            items = string.Join("/", price.Items);
             cost = "";
             all = "";
             carried = "";
@@ -1470,9 +1475,9 @@ namespace Jafna
                 int now = WholeItems(spent, price, k);
                 if (now > 0) anything = true;
 
-                cost += (k > 0 ? ", " : "") + now + " " + item;
-                all += (k > 0 ? ", " : "") + WholeItems(need, price, k) + " " + item;
-                carried += (k > 0 ? ", " : "") + (pack == null ? 0 : pack.CountItems(item)) + " " + item;
+                cost += (k > 0 ? "/" : "") + now;
+                all += (k > 0 ? "/" : "") + WholeItems(need, price, k);
+                carried += (k > 0 ? "/" : "") + (pack == null ? 0 : pack.CountItems(item));
 
                 int entry = OwnCost(selected, item);
                 if (entry > 0) own += (own.Length > 0 ? ", " : "") + entry + " " + item;
