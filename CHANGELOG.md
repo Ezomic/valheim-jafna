@@ -33,7 +33,7 @@ for a Control key. A key name over 14 characters is cut to 14 on that row. The w
 every row is worked out in a comment in the code and is 40 characters or fewer.
 
 The panel is no longer rebuilt on every frame: it is rebuilt when the aim (to the nearest
-centimetre), the reach, the price, the pack, the held key or the language changes. Item names are
+centimetre), the reach, the price, the pack, the held key, the stone fill switch, AutoRaise or the language changes. Item names are
 looked up once per language. When you scroll to another entry of the same hoe, the old entry's
 numbers no longer show on the new one for a frame. The readout also logs an error once if it ever
 builds anything other than thirteen rows.
