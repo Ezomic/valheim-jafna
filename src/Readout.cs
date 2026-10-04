@@ -272,12 +272,6 @@ namespace Jafna
             return name;
         }
 
-        /// <summary>
-        /// The warning slot: always one line, "All clear" or the single most important thing that
-        /// is wrong. In order: a ward that blocks the swing, ground the game will never let it
-        /// reach, a swing that cannot be paid for because no workbench is near, then running short
-        /// of stone. Only the first is shown and the rows below say the rest, so a second problem
-        /// never makes the slot taller.
         private static string SwitchRow()
         {
             if (!JafnaConfig.AutoRaise.Value) return Row("Stone fill: ", Num("off"), ", this server has it off");
@@ -288,6 +282,12 @@ namespace Jafna
             return Row("Stone fill: ", Num(StoneSwitch.On ? "on" : "off"), key);
         }
 
+        /// <summary>
+        /// The warning slot: always one line, "All clear" or the single most important thing that
+        /// is wrong. In order: a ward that blocks the swing, ground the game will never let it
+        /// reach, a swing that cannot be paid for because no workbench is near, then running short
+        /// of stone. Only the first is shown and the rows below say the rest, so a second problem
+        /// never makes the slot taller.
         /// </summary>
         private static string Slot(bool wardClear, bool far, Fill.Terms terms, string own, string station)
         {

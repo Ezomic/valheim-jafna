@@ -86,7 +86,7 @@ row that would be (several kinds of item in a price, a longer language) is cut w
 than allowed to. `ShowReadout` turns all of it off.
 
 The panel is rebuilt only when something it shows has changed (the aim to the nearest
-centimetre, the reach, the price, the pack, the language), not on every frame, and the item
+centimetre, the reach, the price, the pack, the stone fill switch, AutoRaise, the language), not on every frame, and the item
 names are looked up in the language once.
 
 `jafnareadout` is a development command, in the console, and it ships in the build on purpose so

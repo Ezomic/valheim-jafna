@@ -59,7 +59,7 @@
 #
 # NEEDS: everything the main scenario asks (singleplayer, English, no NoWorkbench key, no nocost, a
 # strip of untouched ground no steeper than 1 in 20 with no ward, no rock, nothing built on it, no
-# other workbench within 20 m, eaten first), Jafna's AutoRaise on in the cfg, and ShowReadout on.
+# other workbench within 20 m, eaten first), Jafna's AutoRaise on in the cfg, StoneFill on (the setup runs `mod jafna stone on`) and ShowReadout on.
 # Crafting is set to 0 for the hoe's own 3 m reach, and to 100 for state 5 only. Devkit d219857 or later, for `place`, and a
 # Devkit that has `break`, `note` and `went`.
 #
@@ -96,6 +96,7 @@ clear
 give Hoe:1,Stone:2
 skill Crafting 0
 tool Hoe mud_road_v2
+mod jafna stone on
 
 place piece_workbench -11 -10
 wait 1

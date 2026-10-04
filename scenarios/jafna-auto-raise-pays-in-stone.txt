@@ -218,7 +218,7 @@
 #     arithmetic a fill reaching 1.5 m past the circle was caught here in about 6 runs in 10, and
 #     one reaching 2.5 m past it in 999 in 1000.
 #   - `onscreen needs a Workbench nearby yes` in section 7, read in the frame of the swing: a build
-#     that ignores the bench prices that swing instead, with a Stone row of "needs N Stone".
+#     that ignores the bench prices that swing instead, with a Stone row of "Stone: carry N, need N Stone".
 #   - `carrying Stone 20` in section 7: a build that ignores the bench lifts the whole circle for 4
 #     to 7 Stone and reads 17 or fewer, whatever it carried in.
 #   - `centre Workbench nearby yes` in section 7: a build that refuses the fill without saying so,
@@ -318,7 +318,7 @@
 #     swing, nor a zone owner leaving a swing from a player without Jafna as vanilla. Nothing tests
 #     those, manual steps included.
 #
-# NEEDS: singleplayer, English as the game language (the messages name the item and the bench),
+# NEEDS: StoneFill on (the setup runs `mod jafna stone on`, so an aborted jafna-stone-switch run cannot leave it off), singleplayer, English as the game language (the messages name the item and the bench),
 # no NoWorkbench key set in the world, no nocost, and a strip of untouched ground no steeper than 1
 # in 20 with no ward from 16 m ahead of you to 26 m behind, 9 m wide on your right and 12 m on
 # your left, with nothing built or growing on it, no rock or boulder on it, and no other workbench
@@ -396,12 +396,12 @@
 #      square False, so one swing adds 8,27 cubic metres to flat ground for Stone x2. That is
 #      0,242 $item_stone per cubic metre, within build range of a $piece_workbench."
 #   2. Stand on a fresh mound with 50 Stone, half a metre off its middle, and aim at untouched
-#      ground 2.5 m further out. Expected: a Stone row "you carry 50, needs N", N from 4 to 7 at the hoe's own reach and from 18 to 27 with Crafting at 60 or more. The
+#      ground 2.5 m further out. Expected: a Stone row "Stone: carry 50, need N Stone", N from 4 to 7 at the hoe's own reach and from 18 to 27 with Crafting at 60 or more. The
 #      first flat top, which charged the edge of the circle nearly all the way up, shows 7 to 10
 #      and 30 to 39. Drop all but 1 Stone. Expected: the top row says "Short of stone, fills
-#      only the middle" and the Stone row "you carry 1 Stone, needs N Stone" with N in red, the same N.
+#      only the middle" and the Stone row "Stone: carry 1, need N Stone" with N in red, the same N.
 #      Drop the last one. Expected: the top row says "Not enough stone to fill any of it" and the
-#      Stone row "you carry 0 Stone, needs N Stone".
+#      Stone row "Stone: carry 0, need N Stone".
 #   3. Carry 50 Stone. Stand on the top of a mound and press Left Alt. Walk to untouched low
 #      ground and swing once. Expected: the whole circle of the swing comes up to the held height
 #      in that one swing, with a step at its edge, and Stone leaves the pack. Step a
@@ -447,7 +447,7 @@
 #      press Left Alt again to let go. Place one Raise ground on the mound's top, which lifts it
 #      about a metre, stand on its new top and press Left Alt, then go back down and aim at the
 #      middle of where the two circles overlap. Expected before swinging: the Stone row
-#      says "needs N Stone", N from 7 to 9, because every filled point has used its free
+#      says "Stone: carry 50, need N Stone", N from 7 to 9, because every filled point has used its free
 #      metre. A build that gave a filled point its metre back, the way Raise ground does, shows 3 or
 #      less there, since the hoe would then do most of that metre for free. Press Left Alt again to
 #      let go.
@@ -462,7 +462,7 @@
 #  10. Hold Left Alt, tap W once, and let go of Left Alt. Expected: you take a step, and the panel
 #      does not say HOLDING.
 #  11. Press Left Alt on its own and keep it down for a second, then let go. Expected: nothing
-#      changes while it is down, and the Taken from row says "HOLDING, LeftAlt releases" the
+#      changes while it is down, and the Taken from row says "HOLDING until LeftAlt" the
 #      moment you let go, and This swing shows the number you noted. Left Alt is not vanilla's alt placement
 #      (that is Left Shift), so the ghost does not move while it is down.
 #  12. Press and let go of Left Alt on its own again. Expected: HOLDING goes when you let go.
@@ -477,6 +477,7 @@ clear
 give Hoe:1,Stone:2
 skill Crafting 0
 tool Hoe mud_road_v2
+mod jafna stone on
 
 # Raise ground's station, and a fill's. See THE WORKBENCH above. The wait lets its Start run, which
 # is what puts it in the list HaveRequirements searches, and the one Jafna's fill asks as well.
