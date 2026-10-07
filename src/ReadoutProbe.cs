@@ -88,7 +88,8 @@ namespace Jafna
                 if (Readout.Plain(rows[i]).EndsWith("..")) cut = true;
             }
 
-            string shown = ours != null && label.text.EndsWith(ours) ? "yes" : "no";
+            string panel = Readout.PanelText;
+            string shown = panel != null && label.text.EndsWith(panel) ? "yes" : "no";
 
             // name=value with no spaces inside, so Devkit's `note` and `printed` steps can match it.
             term.AddString("jafnareadout lines=" + drawn
