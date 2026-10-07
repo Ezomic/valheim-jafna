@@ -66,7 +66,7 @@ namespace Jafna
     {
         public const string PluginGuid = "ezomic.valheim.jafna";
         public const string PluginName = "Jafna";
-        public const string PluginVersion = "1.1.0";
+        public const string PluginVersion = "1.2.0";
         public const string PluginAuthor = "Robbin Thijssen";
 
         /// <summary>Core's plugin GUID. Optional - see TryRegisterWithCore.</summary>

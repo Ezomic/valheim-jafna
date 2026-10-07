@@ -1,49 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 - 8 October 2026
 
-**A switch for the stone fill, yours alone.** `AutoRaise` is the host's rule and a file edit, so
-on a server a player could not turn the stone off for themselves. There is now `StoneFill`, flipped
-in game with J (`StoneFillKey`) while a levelling tool is out. Off, a swing is the hoe's alone: its
-free metre, no stone taken, no price on the panel. The panel's Stone fill row, the last row of the Cost group, says whether it is on, and
-the key says what it did in the top left. The host's `AutoRaise` stays the upper bound, so off there
-is off for everybody and the panel says so. The switch is personal, declared with `Suite.Local` so
-Core never syncs it, and it is kept in the cfg between sessions. A new console command,
-`jafna stone on|off`, flips it the way the key does, for the scenario
-(`scenarios/jafna-stone-switch.txt`), which checks that a swing far below the aimed height takes
-no stone and stops at the free metre with the switch off, and fills with it on. Built and
-compiled, not yet run in game.
+**A switch for the stone fill, yours alone.** `AutoRaise` is the host's rule, so on a server you could not turn the stone off for yourself. There is now `StoneFill`, flipped in game with J (`StoneFillKey`) while a levelling tool is out. Off, a swing is the hoe's alone: its free metre, no stone taken, no price on the panel. The key says what it did in the top left. The host's `AutoRaise` stays the upper bound, so off there is off for everybody, and the panel says so. The switch is personal: Core never syncs it, and it is kept in your cfg between sessions. `jafna stone on|off` does the same from the console, for the scenario.
 
-**The hoe's tooltip stays one size.** The build panel box used to grow and shrink as you swept the
-crosshair, because the readout gained or lost lines (a warning, a price, the 8 m note) and some of
-them were long enough to wrap. It is now thirteen rows in every state, in three labelled groups under
-a single warning slot: Ground (how far the ground comes up and goes down, how wide the swing is),
-Height (the crosshair, the height the swing uses, where that came from) and Cost (stone, the
-workbench and whether stone fill is on). A row with nothing to say holds a dash, the warning slot reads All clear and is
-replaced in place by the one thing that is wrong, and no row is longer than the box, so it never
-grows sideways or wraps. The numbers are the same ones as before, spread over more rows, with
-Raise up to and Lower up to new.
+**The hoe's tooltip stays one size.** The build panel used to grow and shrink as you swept the crosshair, because lines came and went (a warning, a price, the 8 m note) and some were long enough to wrap. It is now thirteen rows in every state, in three groups under a single warning slot: Ground (how far the ground comes up and goes down, how wide the swing is), Height (the crosshair, the height the swing uses, where that came from) and Cost (stone, the workbench, whether stone fill is on). A row with nothing to say holds a dash, and the warning slot reads All clear until the one thing that is wrong replaces it. No row is longer than 40 characters, so nothing wraps. Raise up to and Lower up to are new rows.
 
-Three small wording changes follow from keeping every row inside the box and a changing number at
-the end of its row: the stone row reads `carry 20, need 14 Stone`, naming the item once at the
-end (the longer wording was 41 characters in the commonest state and got cut), the short-of-stone
-sentence moved into the warning slot as `Short of stone, fills only the middle`, and the held
-height reads `HOLDING until LeftAlt` instead of `HOLDING, LeftAlt releases`, which was too long
-for a Control key. A key name over 14 characters is cut to 14 on that row. The widest case of
-every row is worked out in a comment in the code and is 40 characters or fewer.
+Three wordings changed to fit: the stone row reads `carry 20, need 14 Stone`, the short-of-stone message moved into the warning slot as `Short of stone, fills only the middle`, and the held height reads `HOLDING until LeftAlt`. A key name over 14 characters is cut to 14 on that row. The panel is rebuilt only when something it shows changes, and scrolling to another entry of the same hoe no longer shows the old entry's numbers for a frame.
 
-The panel is no longer rebuilt on every frame: it is rebuilt when the aim (to the nearest
-centimetre), the reach, the price, the pack, the held key, the stone fill switch, AutoRaise or the language changes. Item names are
-looked up once per language. When you scroll to another entry of the same hoe, the old entry's
-numbers no longer show on the new one for a frame. The readout also logs an error once if it ever
-builds anything other than thirteen rows.
-
-A Devkit scenario, `jafna-readout-one-size`, runs the panel through flat ground, a fillable spot, a
-short pack, no workbench and a Crafting 100 swing with fifty stones. It holds the drawn line count
-and height equal and checks that Jafna's own string is thirteen rows, shown in the label, with no row
-cut and the Stone and Workbench rows holding a dash or text as expected. It reads them through a new
-`jafnareadout` console command, a development command that ships in the build, only reads and is not
-a cheat. Built, not yet seen in a game.
+Two development console commands ship with it, `jafnareadout` and the stone switch one. They only read or flip your own setting and are not cheats. Two Devkit scenarios cover this, `jafna-stone-switch` and `jafna-readout-one-size`. Both compile; neither has been played in game yet.
 
 ## 1.1.0 - 30 September 2026
 
