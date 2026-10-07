@@ -120,7 +120,7 @@ printed cut=no yes
 printed stone=dash yes
 printed bench=dash yes
 note lines jafnareadout lines=(\d+)
-note tall jafnareadout tall=([\d.]+)
+note tall tall=([\d.]+)
 
 
 # ---- the mound, 3 m ahead
@@ -159,7 +159,7 @@ printed cut=no yes
 printed stone=text yes
 printed bench=text yes
 went lines jafnareadout lines=(\d+) same
-went tall jafnareadout tall=([\d.]+) same
+went tall tall=([\d.]+) same
 
 
 # ---- 3: the same, short of stone, two of them, 2.5 m ahead
@@ -181,7 +181,7 @@ printed cut=no yes
 printed stone=text yes
 printed bench=text yes
 went lines jafnareadout lines=(\d+) same
-went tall jafnareadout tall=([\d.]+) same
+went tall tall=([\d.]+) same
 
 
 # ---- 4: no workbench, twenty stones, 2.5 m to the right
@@ -205,7 +205,7 @@ printed cut=no yes
 printed stone=dash yes
 printed bench=text yes
 went lines jafnareadout lines=(\d+) same
-went tall jafnareadout tall=([\d.]+) same
+went tall tall=([\d.]+) same
 
 
 # ---- 5: the widest case, Crafting 100 and fifty stones, 20 m on over untouched ground
@@ -240,5 +240,5 @@ printed cut=no yes
 printed stone=text yes
 printed bench=text yes
 went lines jafnareadout lines=(\d+) same
-went tall jafnareadout tall=([\d.]+) same
+went tall tall=([\d.]+) same
 skill Crafting back
