@@ -49,16 +49,16 @@
 #
 # MANUAL STEPS, for what no step can see.
 #
-#   1. Take the hoe out and select Level ground. Expected: the panel's last line says "Stone fill is
-#      on, J turns it off". Put the hoe away. Expected: nothing in the top left changes.
+#   1. Take the hoe out and select Level ground. Expected: the panel's last row says "Stone fill:
+#      on, J turns off". Put the hoe away. Expected: nothing in the top left changes.
 #   2. With the hoe out, press J. Expected: "Stone fill off" in the top left, and the panel's last
-#      line says "Stone fill is off, J turns it on". Quit to the menu and come back in. Expected: it
+#      row says "Stone fill: off, J turns on". Quit to the menu and come back in. Expected: it
 #      is still off. Press J again. Expected: "Stone fill on".
 #   3. With the hoe put away, press J. Expected: nothing happens, and the next time the hoe is out
 #      the panel still says what it said before.
 #   4. Open chat and type a J. Expected: the letter appears in the chat line, and the switch does not
 #      flip.
-#   5. Set AutoRaise to false in the cfg, with the hoe out. Expected: the panel says "Stone fill is
+#   5. Set AutoRaise to false in the cfg, with the hoe out. Expected: the panel says "Stone fill:
 #      off, this server has it off", and pressing J changes the top left message to "Stone fill on,
 #      but this server has it off" without any swing taking stone.
 #   6. On a server, with the host's StoneFill left on and your own turned off: swing at low ground.
@@ -111,7 +111,7 @@ give Stone:20
 wait 1
 onscreen Flattens yes
 onscreen HOLDING no
-onscreen Stone fill is <color=orange>on yes
+onscreen Stone fill: <color=orange>on yes
 
 build mud_road_v2 0 -2.5
 wait 1
@@ -133,7 +133,7 @@ tool Hoe mud_road_v2
 mod jafna stone off
 printed jafna stone=off yes
 wait 1
-onscreen Stone fill is <color=orange>off yes
+onscreen Stone fill: <color=orange>off yes
 onscreen HOLDING no
 centre (clearing the message line) no
 

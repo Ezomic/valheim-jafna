@@ -218,7 +218,7 @@
 #     arithmetic a fill reaching 1.5 m past the circle was caught here in about 6 runs in 10, and
 #     one reaching 2.5 m past it in 999 in 1000.
 #   - `onscreen needs a Workbench nearby yes` in section 7, read in the frame of the swing: a build
-#     that ignores the bench prices that swing instead, "Filling up to that height costs N Stone".
+#     that ignores the bench prices that swing instead, with a Stone row of "needs N Stone".
 #   - `carrying Stone 20` in section 7: a build that ignores the bench lifts the whole circle for 4
 #     to 7 Stone and reads 17 or fewer, whatever it carried in.
 #   - `centre Workbench nearby yes` in section 7: a build that refuses the fill without saying so,
@@ -382,8 +382,8 @@
 # as the scenario builds them.
 #
 # Take steps 2 to 8 within 20 m of a workbench. The mounds need one anyway, and so does every
-# swing that would be paid: out of its range the panel says "Filling up to that height needs a
-# Workbench nearby" where the price would be, and the swing takes no stone and comes up no more
+# swing that would be paid: out of its range the panel's top row says "Filling needs a
+# Workbench nearby" and its Workbench row says none near, and the swing takes no stone and comes up no more
 # than the hoe's metre, which reads as the step failing when it is the rule working.
 #
 # Left Alt pins the height the placement ghost sits at when you press it, and with Level ground
@@ -396,12 +396,12 @@
 #      square False, so one swing adds 8,27 cubic metres to flat ground for Stone x2. That is
 #      0,242 $item_stone per cubic metre, within build range of a $piece_workbench."
 #   2. Stand on a fresh mound with 50 Stone, half a metre off its middle, and aim at untouched
-#      ground 2.5 m further out. Expected: a panel line "Filling up to that height costs N Stone",
-#      N from 4 to 7 at the hoe's own reach and from 18 to 27 with Crafting at 60 or more. The
+#      ground 2.5 m further out. Expected: a Stone row "you carry 50, needs N", N from 4 to 7 at the hoe's own reach and from 18 to 27 with Crafting at 60 or more. The
 #      first flat top, which charged the edge of the circle nearly all the way up, shows 7 to 10
-#      and 30 to 39. Drop all but 1 Stone. Expected: "You carry 1 Stone, this swing fills the
-#      middle for 1 Stone, all of it costs N Stone", the same N. Drop the last one. Expected: "You
-#      carry 0 Stone, not enough to fill any of it, all of it costs N Stone".
+#      and 30 to 39. Drop all but 1 Stone. Expected: the top row says "Short of stone, fills
+#      only the middle" and the Stone row "you carry 1 Stone, needs N Stone" with N in red, the same N.
+#      Drop the last one. Expected: the top row says "Not enough stone to fill any of it" and the
+#      Stone row "you carry 0 Stone, needs N Stone".
 #   3. Carry 50 Stone. Stand on the top of a mound and press Left Alt. Walk to untouched low
 #      ground and swing once. Expected: the whole circle of the swing comes up to the held height
 #      in that one swing, with a step at its edge, and Stone leaves the pack. Step a
@@ -409,8 +409,8 @@
 #      overlap is gone, and a new one stands at the edge of the second circle. Press Left Alt again
 #      to let go.
 #   4. Type `setkey NoBuildCost` in the console (it needs devcommands), stand on a fresh mound with
-#      10 Stone and swing at untouched ground 2 to 3 m out. Expected: before the swing the panel
-#      says "Filling up to that height is free in this world", the whole circle comes up to the
+#      10 Stone and swing at untouched ground 2 to 3 m out. Expected: before the swing the Stone row
+#      says "free in this world", the whole circle comes up to the
 #      mound's height, and all 10 Stone are still there. NoBuildCost frees the stone and still
 #      wants the workbench, as it does for Raise ground, so stay in its range for this one too.
 #      `removekey NoBuildCost` afterwards.
@@ -446,8 +446,8 @@
 #      ground a few metres clear of the mound and swing twice, two metres apart, as in step 3, and
 #      press Left Alt again to let go. Place one Raise ground on the mound's top, which lifts it
 #      about a metre, stand on its new top and press Left Alt, then go back down and aim at the
-#      middle of where the two circles overlap. Expected before swinging: "Filling up to that
-#      height costs N Stone", N from 7 to 9, because every filled point has used its free
+#      middle of where the two circles overlap. Expected before swinging: the Stone row
+#      says "needs N Stone", N from 7 to 9, because every filled point has used its free
 #      metre. A build that gave a filled point its metre back, the way Raise ground does, shows 3 or
 #      less there, since the hoe would then do most of that metre for free. Press Left Alt again to
 #      let go.
@@ -462,8 +462,8 @@
 #  10. Hold Left Alt, tap W once, and let go of Left Alt. Expected: you take a step, and the panel
 #      does not say HOLDING.
 #  11. Press Left Alt on its own and keep it down for a second, then let go. Expected: nothing
-#      changes while it is down, and the panel says "HOLDING height, press LeftAlt to release" the
-#      moment you let go, ending in the number you noted. Left Alt is not vanilla's alt placement
+#      changes while it is down, and the Taken from row says "HOLDING, LeftAlt releases" the
+#      moment you let go, and This swing shows the number you noted. Left Alt is not vanilla's alt placement
 #      (that is Left Shift), so the ghost does not move while it is down.
 #  12. Press and let go of Left Alt on its own again. Expected: HOLDING goes when you let go.
 
@@ -487,7 +487,7 @@ wait 1
 # three metres, which sections 1, 2 and 3 are measured at.
 onscreen Flattens yes
 onscreen HOLDING no
-onscreen adds nothing yet yes
+onscreen across (Crafting 0) yes
 
 # The centre message stays in its text after it fades, so an old "Not enough" from earlier play
 # would answer the first check below. This reads and clears it and cannot fail.
@@ -524,7 +524,7 @@ move 3.5 0
 tool Hoe mud_road_v2
 skill Crafting 100
 wait 1
-onscreen up from the hoe's own yes
+onscreen across (Crafting 100) yes
 onscreen HOLDING no
 
 build mud_road_v2 2.5 0

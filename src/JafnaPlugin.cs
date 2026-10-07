@@ -101,6 +101,9 @@ namespace Jafna
             _harmony = new Harmony(PluginGuid);
             _harmony.PatchAll(typeof(JafnaPatches));
 
+            // The console command Devkit's scenario reads the panel's drawn size through.
+            _harmony.PatchAll(typeof(ReadoutProbe.Hook));
+
             // Named separately rather than by a bare PatchAll(). Readout carries its own
             // patch because the restore has to happen on a method that keeps running after
             // the tool is put away, and the rule that nothing goes live by merely being
