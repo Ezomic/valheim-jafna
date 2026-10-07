@@ -99,7 +99,7 @@ namespace Jafna
 
         private const int HeldKeyChars = 14;
 
-        private const string Dim = "#a79d86";
+        private const string Dim = "#d9d0bb";
         private const string Red = "#ff6060";
 
         private static readonly List<Heightmap> Maps = new List<Heightmap>();
@@ -214,6 +214,50 @@ namespace Jafna
             }
 
             _lines = string.Join("\n", rows.ToArray());
+            _panel = Panel(rows, raise, lower, probe.y, target);
+        }
+
+        /// <summary>
+        /// What the build panel shows: the same facts as <see cref="Lines"/> in nine lines instead
+        /// of thirteen, because the label's box is short and the game shrinks fifteen lines to a
+        /// few pixels of font. Ground and Height sit side by side, in short labels that fit half a
+        /// line; everything else is already one line. Lines stays the full list, since the
+        /// scenarios count it and read the Stone and Workbench rows out of it by position.
+        /// </summary>
+        private static string Panel(List<string> rows, float raise, float lower, float aim, float target)
+        {
+            const string Gap = "<pos=50%>";
+
+            return string.Join("\n", new[]
+            {
+                rows[0],
+                Header("GROUND") + Gap + Header("HEIGHT"),
+                Row("Raise: ", Metres(raise)) + Gap + Row("Aim: ", Num(aim.ToString("0.00") + "m")),
+                Row("Lower: ", Metres(lower)) + Gap + Row("Swing: ", Num(target.ToString("0.00") + "m")),
+                rows[4],
+                rows[8],
+                rows[10],
+                rows[11] + Gap + FillCell()
+            });
+        }
+
+        /// <summary>The stone fill switch in half a line; the full wording stays in Lines.</summary>
+        private static string FillCell()
+        {
+            if (!JafnaConfig.AutoRaise.Value) return Row("Fill: ", Num("host off"));
+
+            KeyCode bound = JafnaConfig.StoneFillKey.Value;
+            string key = bound == KeyCode.None ? "" : " (" + KeyName(bound) + ")";
+
+            return Row("Fill: ", Num(StoneSwitch.On ? "on" : "off"), key);
+        }
+
+        private static string _panel;
+
+        /// <summary>What the panel's description ends with.</summary>
+        internal static string PanelText
+        {
+            get { return _panel; }
         }
 
         private static bool Unchanged(
@@ -491,6 +535,7 @@ namespace Jafna
         internal static void Clear()
         {
             _lines = null;
+            _panel = null;
         }
 
         /// <summary>
@@ -539,6 +584,7 @@ namespace Jafna
             if (_lines != null && selected != _builtFor)
             {
                 _lines = null;
+                _panel = null;
                 Restore();
                 return;
             }
@@ -555,7 +601,10 @@ namespace Jafna
                 _original = selected.m_description;
             }
 
-            string wanted = string.IsNullOrEmpty(_original) ? _lines : _original + "\n\n" + _lines;
+            // The vanilla sentence ("If the terrain is too lumpy...") is dropped while the readout
+            // is up: it is two lines of a box that has room for about nine, and the panel is what
+            // the player is looking for with the hoe out.
+            string wanted = _panel;
 
             // Only on change. SetupPieceInfo runs every frame and would happily re-localise a
             // fresh string sixty times a second; there is no reason to hand it one.
@@ -563,6 +612,85 @@ namespace Jafna
 
             selected.m_description = wanted;
             _written = wanted;
+            LogLabelOnce();
+            GrowLabel();
+        }
+
+        private const float PanelFont = 14f;
+
+        private static float _labelHeight = -1f;
+        private static Vector2 _labelAt;
+
+        /// <summary>
+        /// The label's box is 61 high and autosizing squeezes fifteen lines into it, which is a
+        /// font of a few pixels. Taller is the fix: the box grows to what the text wants at the
+        /// label's own maximum size, and goes back when the readout does. Measured 2026-10-08.
+        /// </summary>
+        private static void GrowLabel()
+        {
+            Hud hud = Hud.instance;
+            if (hud == null || hud.m_pieceDescription == null) return;
+
+            RectTransform rect = hud.m_pieceDescription.rectTransform;
+            if (_labelHeight < 0f)
+            {
+                _labelHeight = rect.rect.height;
+                _labelAt = rect.anchoredPosition;
+            }
+
+            hud.m_pieceDescription.enableAutoSizing = false;
+            hud.m_pieceDescription.fontSize = PanelFont;
+            hud.m_pieceDescription.lineSpacing = -12f;
+            float wanted = hud.m_pieceDescription.GetPreferredValues(hud.m_pieceDescription.text, rect.rect.width, 0f).y;
+            float height = Mathf.Max(_labelHeight, wanted);
+            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+
+            // Pivot-centred growth runs over the title above and the key hints below. Keeping the
+            // top edge where it was grows the box downward only.
+            float grew = height - _labelHeight;
+            rect.anchoredPosition = _labelAt + new Vector2(0f, -grew * (1f - rect.pivot.y));
+        }
+
+        private static void UngrowLabel()
+        {
+            if (_labelHeight < 0f) return;
+
+            Hud hud = Hud.instance;
+            if (hud != null && hud.m_pieceDescription != null)
+            {
+                hud.m_pieceDescription.enableAutoSizing = true;
+                hud.m_pieceDescription.lineSpacing = 0f;
+                hud.m_pieceDescription.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _labelHeight);
+                hud.m_pieceDescription.rectTransform.anchoredPosition = _labelAt;
+            }
+
+            _labelHeight = -1f;
+        }
+
+        private static bool _labelLogged;
+
+        /// <summary>
+        /// The panel label shrinks its text to fit when it has autosizing on, and the scenario
+        /// numbers (widest equal to room on every run) say it does. Thirteen extra rows under a
+        /// vanilla description is what makes it shrink, and a shrunk label is the unreadable panel
+        /// reported on 2026-10-07. One line with the real font numbers, so the fix is picked
+        /// from what the game drew rather than guessed.
+        /// </summary>
+        private static void LogLabelOnce()
+        {
+            if (_labelLogged) return;
+
+            Hud hud = Hud.instance;
+            if (hud == null || hud.m_pieceDescription == null) return;
+
+            TMPro.TMP_Text label = hud.m_pieceDescription;
+            label.ForceMeshUpdate();
+            _labelLogged = true;
+
+            JafnaPlugin.Log.LogInfo("Build panel label: auto=" + label.enableAutoSizing
+                + " size=" + label.fontSize.ToString("0.0") + " min=" + label.fontSizeMin
+                + " max=" + label.fontSizeMax + " rect=" + label.rectTransform.rect.width.ToString("0")
+                + "x" + label.rectTransform.rect.height.ToString("0"));
         }
 
         private static void Restore()
@@ -575,6 +703,7 @@ namespace Jafna
             // the null-propagating operators bypass the overload and would hand back a
             // destroyed object that throws somewhere else entirely.
             if (_described != null) _described.m_description = _original;
+            UngrowLabel();
 
             _described = null;
             _original = null;

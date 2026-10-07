@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1 - 8 October 2026
+
+**The hoe's panel is readable again.** The game gives the build panel's text a box 61 pixels high and shrinks the text to fit it, so the thirteen rows added in 1.2.0 came out a few pixels tall. The box now grows downward to fit its text, the text is a fixed size, and the panel is eight lines: Ground and Height sit side by side, and the workbench and the stone fill switch share a line (`Fill: on (J)`). The game's own one-line description of the hoe piece is hidden while the readout is up, and the faint headings are lighter. Nothing it says has changed, and the box still never changes size from one state to the next.
+
 ## 1.2.0 - 8 October 2026
 
 **A switch for the stone fill, yours alone.** `AutoRaise` is the host's rule, so on a server you could not turn the stone off for yourself. There is now `StoneFill`, flipped in game with J (`StoneFillKey`) while a levelling tool is out. Off, a swing is the hoe's alone: its free metre, no stone taken, no price on the panel. The key says what it did in the top left. The host's `AutoRaise` stays the upper bound, so off there is off for everybody, and the panel says so. The switch is personal: Core never syncs it, and it is kept in your cfg between sessions. `jafna stone on|off` does the same from the console, for the scenario.
